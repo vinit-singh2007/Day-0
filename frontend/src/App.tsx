@@ -7,6 +7,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import { useState } from "react";
 import ProtectedRoute from "./components/routes/ProtectedRoutes";
 import Underconstruction from "./pages/Underconstruction";
+import Task from "./pages/Task";
 
 
 const App = () => {
@@ -63,6 +64,10 @@ const App = () => {
         <Route
           path="/dashboard/simulation"
           element={<Simulation />}
+        />
+        <Route
+          path="/dashboard/task"
+          element={<Task />}
         />
         <Route
           path="/dashboard/path"

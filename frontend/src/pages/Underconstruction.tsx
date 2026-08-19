@@ -1,9 +1,14 @@
 import React from 'react'
+import constructionimg from "../assets/construction.png"
 
 const Underconstruction = () => {
   return (
     <div>
-      it will come sooner than you think Lorem ipsum dolor sit amet consectetur adipisicing elit. Soluta, iste.lorem12 Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptate asperiores, sed voluptatum repellendus assumenda repellat fugiat aspernatur exercitationem magni alias?
+      <img 
+          src={constructionimg}
+          alt="Isometric Background"
+          className=" inset-0 w-full h-300px object-cover object-top pointer-events-none z-0 brightness-100 dark:brightness-150 contrast-105 transition-all duration-300 "
+        />
     </div>
   )
 }

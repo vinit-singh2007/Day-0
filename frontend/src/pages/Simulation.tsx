@@ -24,7 +24,7 @@ const sims = [
     title:
       "Master data analysis, ML models, and statistical storytelling.",
     icon: TrendingUp,
-    iconColor: "text-indigo-400",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
     comingSoon: false,
   },
   {
@@ -33,7 +33,7 @@ const sims = [
     title:
       "Build modern, scalable web applications using React and Node.js.",
     icon: Code,
-    iconColor: "text-emerald-400",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
     comingSoon: false,
   },
   {
@@ -42,7 +42,7 @@ const sims = [
     title:
       "Create stunning user interfaces and seamless user experiences.",
     icon: Palette,
-    iconColor: "text-rose-400",
+    iconColor: "text-rose-600 dark:text-rose-400",
     comingSoon: false,
   },
   {
@@ -51,7 +51,7 @@ const sims = [
     title:
       "Optimize campaigns, SEO, growth funnels, and analytics.",
     icon: Megaphone,
-    iconColor: "text-amber-400",
+    iconColor: "text-amber-600 dark:text-amber-400",
     comingSoon: true,
   },
   {
@@ -60,7 +60,7 @@ const sims = [
     title:
       "Perform threat analysis, penetration testing, and network defense.",
     icon: ShieldCheck,
-    iconColor: "text-cyan-400",
+    iconColor: "text-cyan-600 dark:text-cyan-400",
     comingSoon: true,
   },
   {
@@ -69,7 +69,7 @@ const sims = [
     title:
       "Design scalable cloud infrastructure and serverless solutions.",
     icon: Cloud,
-    iconColor: "text-sky-400",
+    iconColor: "text-sky-600 dark:text-sky-400",
     comingSoon: true,
   },
   {
@@ -78,7 +78,7 @@ const sims = [
     title:
       "Build product roadmaps, manage sprints, and backlog grooming.",
     icon: Kanban,
-    iconColor: "text-purple-400",
+    iconColor: "text-purple-600 dark:text-purple-400",
     comingSoon: true,
   },
   {
@@ -87,7 +87,7 @@ const sims = [
     title:
       "Develop smart contracts, Web3 protocols, and dApps.",
     icon: Link2,
-    iconColor: "text-red-400",
+    iconColor: "text-red-600 dark:text-red-400",
     comingSoon: true,
   },
   {
@@ -96,7 +96,7 @@ const sims = [
     title:
       "Construct robust ETL pipelines and enterprise data lakes.",
     icon: Database,
-    iconColor: "text-blue-400",
+    iconColor: "text-blue-600 dark:text-blue-400",
     comingSoon: true,
   },
   {
@@ -105,7 +105,7 @@ const sims = [
     title:
       "Create responsive and interactive web interfaces with modern frontend technologies.",
     icon: Monitor,
-    iconColor: "text-violet-400",
+    iconColor: "text-violet-600 dark:text-violet-400",
     comingSoon: true,
   },
   {
@@ -114,7 +114,7 @@ const sims = [
     title:
       "Design and develop complete web applications across frontend, backend, and databases.",
     icon: Layers,
-    iconColor: "text-fuchsia-400",
+    iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
     comingSoon: true,
   },
   {
@@ -123,7 +123,7 @@ const sims = [
     title:
       "Build high-performance Android and iOS applications with modern mobile frameworks.",
     icon: Smartphone,
-    iconColor: "text-green-400",
+    iconColor: "text-green-600 dark:text-green-400",
     comingSoon: true,
   },
   {
@@ -132,7 +132,7 @@ const sims = [
     title:
       "Design, develop, test, and maintain reliable software systems and applications.",
     icon: Terminal,
-    iconColor: "text-blue-400",
+    iconColor: "text-blue-600 dark:text-blue-400",
     comingSoon: true,
   },
   {
@@ -141,7 +141,7 @@ const sims = [
     title:
       "Build, train, optimize, and deploy machine learning models for real-world applications.",
     icon: Brain,
-    iconColor: "text-pink-400",
+    iconColor: "text-pink-600 dark:text-pink-400",
     comingSoon: true,
   },
 ];
@@ -156,7 +156,7 @@ const Simulations = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background text-foreground">
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="grid-canvas scene-3d flex-1 px-4 py-6 sm:px-8">
           <div className="w-full">
@@ -165,7 +165,7 @@ const Simulations = () => {
               {/* Career Paths */}
               <section className="scene-3d">
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-4">
-                  <h2 className="truncate text-base font-semibold text-white">
+                  <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
                     Career Paths
                   </h2>
                 </div>
@@ -178,34 +178,34 @@ const Simulations = () => {
                     return (
                       <article
                         key={sim.id}
-                        className={`tilt-3d relative flex flex-col justify-between rounded-3xl bg-[#0e131f] border border-gray-800/60 p-6 text-white shadow-2xl transition-all duration-300 ${
+                        className={`tilt-3d relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#0e131f] border border-gray-200 dark:border-gray-800/60 p-6 shadow-sm dark:shadow-2xl transition-all duration-300 ${
                           sim.comingSoon
-                            ? "opacity-70"
-                            : "hover:border-gray-700 hover:-translate-y-1"
+                            ? "opacity-70 dark:opacity-60"
+                            : "hover:border-gray-300 dark:hover:border-gray-700 hover:-translate-y-1 shadow-md hover:shadow-lg dark:hover:shadow-2xl"
                         }`}
                       >
                         {/* Coming Soon Badge */}
                         {sim.comingSoon && (
-                          <span className="absolute top-5 right-5 rounded-full bg-gray-800/80 border border-gray-700/50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                          <span className="absolute top-5 right-5 rounded-full bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Coming Soon
                           </span>
                         )}
 
                         <div>
                           {/* Icon */}
-                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-inner">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-inner">
                             <IconComponent
                               className={`h-6 w-6 ${sim.iconColor}`}
                             />
                           </div>
 
                           {/* Role Title */}
-                          <h3 className="mt-5 text-xl font-bold tracking-tight text-white">
+                          <h3 className="mt-5 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                             {sim.path}
                           </h3>
 
                           {/* Role Description */}
-                          <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                          <p className="mt-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
                             {sim.title}
                           </p>
                         </div>
@@ -222,8 +222,8 @@ const Simulations = () => {
                           }
                           className={`mt-6 flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase group w-fit transition-colors ${
                             sim.comingSoon
-                              ? "text-gray-600 cursor-not-allowed"
-                              : "text-indigo-400 hover:text-indigo-300"
+                              ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                              : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
                           }`}
                         >
                           <span>

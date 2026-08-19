@@ -44,21 +44,21 @@ const sims = [
     path: "Data Scientist",
     title: "Master data analysis, ML models, and statistical storytelling.",
     icon: TrendingUp,
-    iconColor: "text-indigo-400",
+    iconColor: "text-indigo-600 dark:text-indigo-400",
     comingSoon: false,
   },
   {
     path: "Web Developer",
     title: "Build modern, scalable web applications using React and Node.js.",
     icon: Code,
-    iconColor: "text-emerald-400",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
     comingSoon: false,
   },
   {
     path: "UI/UX Designer",
     title: "Create stunning user interfaces and seamless user experiences.",
     icon: Palette,
-    iconColor: "text-rose-400",
+    iconColor: "text-rose-600 dark:text-rose-400",
     comingSoon: false,
   },
 ];
@@ -77,8 +77,9 @@ const mentors = [
     initials: "VS",
     href: "https://axevin-ixyhk8vv8-axe-vin.vercel.app/",
   },
-  { name: "Krishna Singh", role: "Sr. Gen AI Eng", initials: "KS" },
-  { name: "Aditya Mishra", role: "Jr. Data Scientist", initials: "AM" },
+    { name: "Ravi Yadav", role: "Sr. UI/UX Designer", initials: "RY" },
+  { name: "Krishna Singh", role: "Sr. Gen AI Eng", initials: "KS",href:"https://portfolio-blush-eight-sztwrl98rm.vercel.app/"},
+  { name: "Aditya Mishra", role: "Jr. Data Scientist", initials: "AM",href:"https://portfolio-nu-one-21.vercel.app/"},
 ];
 
 interface handleNavigateSimulation {
@@ -87,7 +88,6 @@ interface handleNavigateSimulation {
 
 const Dashboard = ({ onNavigate }: handleNavigateSimulation) => {
   const [dashboardData, setDashboardData] = useState(null);
-  // const navigate = useNavigate();
 
   useEffect(() => {
     const getDashboard = async () => {
@@ -112,71 +112,76 @@ const Dashboard = ({ onNavigate }: handleNavigateSimulation) => {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background text-foreground">
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="grid-canvas scene-3d flex-1 px-4 py-6 sm:px-8">
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="flex min-w-0 flex-col gap-6">
-              {/* simulation */}
-            <section className="scene-3d">
-  <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-4">
-    <h2 className="truncate text-base font-semibold text-white">
-      Career Paths
-    </h2>
+              {/* Simulation Section */}
+              <section className="scene-3d">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 pb-4">
+                  <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
+                    Career Paths
+                  </h2>
 
-    <NavLink to="/dashboard/simulation" onClick={onNavigate} className="label-mono text-indigo-400 hover:text-indigo-300">See all</NavLink>
-  </div>
+                  <NavLink 
+                    to="/dashboard/simulation" 
+                    onClick={onNavigate} 
+                    className="label-mono text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
+                  >
+                    See all
+                  </NavLink>
+                </div>
 
-  {/* Updated grid to enforce a 3-column layout max */}
-  <div className="grid gap-6 md:grid-cols-3">
-    {sims.map((sim) => {
-      const IconComponent = sim.icon;
-      return (
-        <article
-          key={sim.path}
-          className="tilt-3d relative flex flex-col justify-between rounded-3xl bg-[#0e131f] border border-gray-800/60 p-6 text-white shadow-2xl transition-all duration-300 hover:border-gray-700"
-        >
-          {/* Top Badge for Coming Soon items */}
-          {sim.comingSoon && (
-            <span className="absolute top-5 right-5 rounded-full bg-gray-800/80 border border-gray-700/50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
-              Coming Soon
-            </span>
-          )}
+                <div className="grid gap-6 md:grid-cols-3">
+                  {sims.map((sim) => {
+                    const IconComponent = sim.icon;
+                    return (
+                      <article
+                        key={sim.path}
+                        className="tilt-3d relative flex flex-col justify-between rounded-3xl bg-white dark:bg-[#0e131f] border border-gray-200 dark:border-gray-800/60 p-6 shadow-sm dark:shadow-2xl transition-all duration-300 hover:border-gray-300 dark:hover:border-gray-700 hover:-translate-y-1 shadow-md hover:shadow-lg dark:hover:shadow-2xl"
+                      >
+                        {/* Top Badge for Coming Soon items */}
+                        {sim.comingSoon && (
+                          <span className="absolute top-5 right-5 rounded-full bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700/50 px-2.5 py-0.5 text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Coming Soon
+                          </span>
+                        )}
 
-          <div>
-            {/* Dynamic Icon */}
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 border border-white/10 shadow-inner">
-              <IconComponent className={`h-6 w-6 ${sim.iconColor}`} />
-            </div>
+                        <div>
+                          {/* Dynamic Icon */}
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-inner">
+                            <IconComponent className={`h-6 w-6 ${sim.iconColor}`} />
+                          </div>
 
-            {/* Role Title */}
-            <h3 className="mt-5 text-xl font-bold tracking-tight text-white">
-              {sim.path}
-            </h3>
+                          {/* Role Title */}
+                          <h3 className="mt-5 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                            {sim.path}
+                          </h3>
 
-            {/* Role Description */}
-            <p className="mt-2 text-xs leading-relaxed text-gray-400">
-              {sim.title}
-            </p>
-          </div>
+                          {/* Role Description */}
+                          <p className="mt-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                            {sim.title}
+                          </p>
+                        </div>
 
-          {/* Action Link */}
-          <button 
-            disabled={sim.comingSoon}
-            className={`mt-6 flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase group w-fit transition-colors ${
-              sim.comingSoon 
-                ? "text-gray-600 cursor-not-allowed" 
-                : "text-indigo-400 hover:text-indigo-300"
-            }`}
-          >
-            <span>Start Simulation</span>
-            <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-          </button>
-        </article>
-      );
-    })}
-  </div>
-</section>
+                        {/* Action Link */}
+                        <button 
+                          disabled={sim.comingSoon}
+                          className={`mt-6 flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase group w-fit transition-colors ${
+                            sim.comingSoon 
+                              ? "text-gray-400 dark:text-gray-600 cursor-not-allowed" 
+                              : "text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          }`}
+                        >
+                          <span>Start Simulation</span>
+                          <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
 
               {/* Stats */}
               <section className="scene-3d grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -201,8 +206,6 @@ const Dashboard = ({ onNavigate }: handleNavigateSimulation) => {
                   </div>
                 ))}
               </section>
-
-              
 
               {/* Weekly Performance */}
               <section className="panel scene-3d p-6">
@@ -256,7 +259,7 @@ const Dashboard = ({ onNavigate }: handleNavigateSimulation) => {
                 </div>
               </section>
 
-                  {/* Hero */}
+              {/* Hero */}
               <section className="tilt-3d glow-primary relative overflow-hidden rounded-3xl bg-primary p-7 text-primary-foreground">
                 <div className="float-3d absolute -right-10 -top-16 h-56 w-56 rounded-full bg-primary-foreground/10 blur-2xl" />
 
@@ -280,7 +283,6 @@ const Dashboard = ({ onNavigate }: handleNavigateSimulation) => {
               </section>
             </div>
 
-                  
             {/* Right Side */}
             <div className="flex flex-col gap-6">
               {/* Tasks */}

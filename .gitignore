@@ -64,3 +64,8 @@ uploads/
 public/uploads/
 temp/
 tmp/
+
+// .gitignore
+serviceAccountKey.json
+node_modules/
+.env

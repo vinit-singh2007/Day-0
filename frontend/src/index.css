@@ -467,8 +467,8 @@ html, body { background: var(--bg); color: var(--fg); font-family: var(--font-di
       linear-gradient(to right, var(--grid) 1px, transparent 1px),
       linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
     background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, black 10%, transparent 80%);
-    opacity: 0.6;
+    /* Opacity kam ki taaki bg image bright aur clear dikhe */
+    opacity: 0.15; 
   }
 }
 
@@ -589,4 +589,59 @@ html, body { background: var(--bg); color: var(--fg); font-family: var(--font-di
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+}
+
+@keyframes infinite-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-infinite-scroll {
+  display: flex;
+  width: max-content;
+  animation: infinite-scroll 25s linear infinite;
+}
+
+/* Pause animation on hover */
+/* .animate-infinite-scroll:hover {
+  animation-play-state: paused;
+}
+
+:root:not(.dark) body,
+:root:not(.dark) .hero-section {
+  background-color: #ffffff !important;
+} */
+
+/* Background Image Brightness & Opacity Fix */
+:root:not(.dark) .hero-bg {
+  background-image: url('/Light-bg.png') !important;
+  background-size: cover;
+  background-position: center;
+  opacity: 1 !important;           /* Blur/dimming hatane ke liye */
+  filter: none !important;          /* Unwanted filters clear karne ke liye */
+  mix-blend-mode: normal !important; /* Dark mode blend mode reset karne ke liye */
+}
+
+/* Light mode me White text transparent / invisible na ho isliye Dark Text */
+:root:not(.dark) .hero-section h1,
+:root:not(.dark) .hero-section h2,
+:root:not(.dark) .hero-section p {
+  color: #0f172a !important; /* Deep slate gray/black text */
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
 }

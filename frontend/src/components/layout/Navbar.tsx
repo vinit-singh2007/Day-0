@@ -4,35 +4,48 @@ import { useEffect, useState } from "react";
 interface NavbarProps {
   onMenuClick?: () => void;
 }
+
 interface UserProfile {
   name?: string;
+  email?: string;
 }
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const [user, setUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
-    // LocalStorage se user fetch karo
+    // Get user saved after login
     const storedUser = localStorage.getItem("user");
+
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+
+        setUser(parsedUser);
       } catch (err) {
-        console.error("Error parsing user data", err);
+        console.error(
+          "Error parsing user data:",
+          err
+        );
       }
     }
   }, []);
 
   const getInitials = (name: string) => {
-  if (!name) return "U";
-  const parts = name.trim().split(" ");
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-};
+    if (!name) return "U";
 
-const userName = user?.name || "User";
+    const parts = name.trim().split(/\s+/);
+
+    if (parts.length >= 2) {
+      return (
+        parts[0][0] + parts[1][0]
+      ).toUpperCase();
+    }
+
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const userName = user?.name || "User";
   const initials = getInitials(userName);
 
   return (
@@ -67,14 +80,13 @@ const userName = user?.name || "User";
           <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-primary" />
         </button>
 
-
         <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border bg-secondary py-1.5 pr-3 pl-1.5">
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground">
             {initials}
           </span>
 
           <span className="hidden truncate text-sm font-medium sm:block">
-           {userName}
+            {userName}
           </span>
         </div>
       </div>

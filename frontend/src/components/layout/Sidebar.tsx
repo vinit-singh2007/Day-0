@@ -1,4 +1,4 @@
-import { NavLink ,useNavigate} from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Inbox,
@@ -9,13 +9,22 @@ import {
   LogOut,
   Zap,
   X,
+  History,
+  Sparkles,
+  User,
+  Diamond,
+  Sun,
+  HelpCircle,
+  MessageSquarePlus,
 } from "lucide-react";
-
+import { ThemeToggle } from "@/hooks/use-theme";
+import { useEffect, useRef, useState } from "react";
+import { getAuth, signOut } from "firebase/auth";
 
 const nav = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Simulations", icon: Zap, path: "/dashboard/simulation" },
-  { label: "Tasks", icon: ListChecks, path: "/dashboard/path" },
+  { label: "Tasks", icon: ListChecks, path: "/dashboard/task" },
   { label: "Path", icon: RouteIcon, path: "/dashboard/path" },
   { label: "Inbox", icon: Inbox, path: "/dashboard/path" },
   { label: "Network", icon: Users, path: "/dashboard/path" },
@@ -33,9 +42,13 @@ interface SidebarContentProps {
 
 const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
   const navigate = useNavigate();
-    const handleLogout = async () => {
+
+  const handleLogout = async () => {
+    const auth = getAuth();
     try {
+      await signOut(auth);
       const baseURL = import.meta.env.VITE_API_URL;
+      
       const res = await fetch(`${baseURL}/api/logout`, {
         method: "POST",
         credentials: "include",
@@ -43,6 +56,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
 
       if (res.ok) {
         localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("user");
         if (onNavigate) onNavigate(); // Mobile drawer close karne ke liye
         navigate("/");
       }
@@ -50,6 +64,21 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
       console.error("Logout error:", error);
     }
   };
+
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Card ke bahar click karne par menu auto-close karne ke liye
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <NavLink
@@ -76,7 +105,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
             key={label}
             to={path}
             onClick={onNavigate}
-            end={path === "/dashboard"} 
+            end={path === "/dashboard"}
             className={({ isActive }) =>
               `tilt-3d flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
@@ -119,13 +148,75 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
       </ul>
 
       <div className="mt-auto flex flex-col gap-1 pt-8">
-        <button className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-          <Settings className="h-4 w-4" />
-          Settings
-        </button>
+        <div className="relative" ref={menuRef}>
+          {/* FLOATING CARD (Fixed for Light & Dark mode + No horizontal scrollbar) */}
+          {isOpen && (
+            <div className="absolute bottom-12 left-0 right-0 z-50 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex flex-col gap-0.5">
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <History className="h-4 w-4 text-muted-foreground" />
+                  <span>Activity</span>
+                </button>
 
-        <button className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10" 
-        onClick={handleLogout}>
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <span>Personal Intelligence</span>
+                </button>
+
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span>Avatar</span>
+                </button>
+
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <Diamond className="h-4 w-4 text-muted-foreground" />
+                  <span>Gems</span>
+                </button>
+
+                <div className="my-1 h-[1px] bg-border" />
+
+                {/* THEME TOGGLE OPTION */}
+                <div className="flex w-full items-center justify-between rounded-xl px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <div className="flex items-center gap-3">
+                    <Sun className="h-4 w-4 text-muted-foreground" />
+                    <span>Theme</span>
+                  </div>
+                  <ThemeToggle />
+                </div>
+
+                <div className="my-1 h-[1px] bg-border" />
+
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  <span>Help</span>
+                </button>
+
+                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                  <MessageSquarePlus className="h-4 w-4 text-muted-foreground" />
+                  <span>Send feedback</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* SETTINGS BUTTON */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              isOpen
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Settings</span>
+          </button>
+        </div>
+
+        <button
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+          onClick={handleLogout}
+        >
           <LogOut className="h-4 w-4" />
           Logout
         </button>
@@ -143,7 +234,7 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex self-start">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-6 lg:flex self-start">
         <SidebarContent />
       </aside>
 
@@ -152,7 +243,7 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
         className={`fixed inset-0 z-50 lg:hidden ${
           open ? "" : "pointer-events-none"
         }`}
-        inert={!open} 
+        inert={!open}
       >
         <div
           onClick={onClose}
@@ -162,7 +253,7 @@ const Sidebar = ({ open = false, onClose }: SidebarProps) => {
         />
 
         <aside
-          className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-6 shadow-2xl transition-transform duration-300 ease-out ${
+          className={`absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-x-hidden overflow-y-auto border-r border-sidebar-border bg-sidebar px-4 py-6 shadow-2xl transition-transform duration-300 ease-out ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
