@@ -20,13 +20,9 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-
         setUser(parsedUser);
       } catch (err) {
-        console.error(
-          "Error parsing user data:",
-          err
-        );
+        console.error("Error parsing user data:", err);
       }
     }
   }, []);
@@ -37,9 +33,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
     const parts = name.trim().split(/\s+/);
 
     if (parts.length >= 2) {
-      return (
-        parts[0][0] + parts[1][0]
-      ).toUpperCase();
+      return (parts[0][0] + parts[1][0]).toUpperCase();
     }
 
     return name.slice(0, 2).toUpperCase();

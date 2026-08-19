@@ -1,81 +1,70 @@
+import { useState } from "react";
 import { Routes, Route, Link, Navigate } from "react-router-dom";
+
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Simulation from "./pages/Simulation";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import { useState } from "react";
-import ProtectedRoute from "./components/routes/ProtectedRoutes";
 import Underconstruction from "./pages/Underconstruction";
-import Task from "./pages/Task";
+import { AssessmentPage } from "./pages/SkillAssessment";
 
+import DashboardLayout from "./components/layout/DashboardLayout";
+import ProtectedRoute from "./components/routes/ProtectedRoutes";
 
 const App = () => {
+  // LocalStorage se login state parse kar rahe hain
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem("isLoggedIn") === "false";
+    return localStorage.getItem("isLoggedIn") === "true";
   });
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Routes>
-        {/* Landing Page */}
-        <Route
-          path="/"
-          element={<LandingPage />}
-        />
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
 
-        {/* Login Page */}
         <Route
           path="/login"
           element={
             <div>
-              <header className="flex justify-between items-center px-6 py-4 border-b border-border">
+              <header className="flex items-center justify-between border-b border-border px-6 py-4">
                 <Link
                   to="/"
-                  className="font-display font-bold text-lg cursor-pointer"
+                  className="font-display cursor-pointer text-lg font-bold"
                 >
                   DAY 0
                 </Link>
 
                 <Link
                   to="/"
-                  className="text-xs font-semibold px-4 py-2 border border-border rounded-sm hover:bg-muted"
+                  className="rounded-sm border border-border px-4 py-2 text-xs font-semibold hover:bg-muted"
                 >
                   Back to Home
                 </Link>
               </header>
 
-              <LoginPage  setIsAuthenticated={setIsAuthenticated}/>
+              <LoginPage setIsAuthenticated={setIsAuthenticated} />
             </div>
           }
         />
 
-       <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}/>}>
-        <Route
-        path="/dashboard"
-        element={<DashboardLayout />}
-        >
-            {/* Dashboard */}
-        <Route
-          index
-          element={<Dashboard />}
-        />
+        {/* Protected Routes (Wrapper) */}
+        <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+          {/* Main Dashboard Layout Wrapper */}
+          <Route path="/dashboard" element={<DashboardLayout />}>
+            
+            {/* Main /dashboard Page */}
+            <Route index element={<Dashboard />} />
 
-        {/* Simulation*/}
-        <Route
-          path="/dashboard/simulation"
-          element={<Simulation />}
-        />
-        <Route
-          path="/dashboard/task"
-          element={<Task />}
-        />
-        <Route
-          path="/dashboard/path"
-          element={<Underconstruction />}
-        />
+            {/* Sub-Pages (Render inside DashboardLayout's <Outlet />) */}
+            <Route path="simulation" element={<Simulation />} />
+            <Route path="assessment/:path?" element={<AssessmentPage />} />
+            <Route path="path" element={<Underconstruction />} />
+          </Route>
         </Route>
-       </Route>
-       <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Fallback Redirect */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </div>
   );

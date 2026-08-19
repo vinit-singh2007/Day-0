@@ -38,46 +38,57 @@ async function handleSignup(req,res){
         },})
     }
 
-async function handleLogin(req,res) {
-    const {email,password}= req.body;
+async function handleLogin(req, res) {
+  const { email, password } = req.body;
 
-      if (!email || !password) {
-        return res.status(400).json({message:"All fields (email, password) are required"});
-      }
-      try {
-        const user = await User.findOne({ email:email });
+  if (!email || !password) {
+    return res.status(400).json({ message: "All fields (email, password) are required" });
+  }
 
-        if (!user) {
-          return res.status(400).json({message:"User not found or invalid email"});
-        }
-        console.log("Entered Password:", password);
-        console.log("Stored DB Password Hash:", user.password);
-        
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-          return res.status(400).json({message:"Invalid credentials / wrong password"});
-        }
+  try {
+    // 1. Explicitly select password field
+    const user = await User.findOne({ email }).select("+password");
 
-        const token=setUser(user)
-        console.log("User logged in:", user);
-        res.cookie("uid", token, {
-         httpOnly: true, 
-         secure: false,  
-         sameSite: "lax", 
-         maxAge: 24 * 60 * 60 * 1000, // 1 day
-  })
+    if (!user) {
+      return res.status(400).json({ message: "User not found or invalid email" });
+    }
 
-        return res.status(200)
-            .json({
-            message: "Login successful",
-            token,
-            user: { id: user._id, user_name: user.user_name, email: user.email }
-  });
+    console.log("Entered Password:", password);
+    console.log("Stored DB Password Hash:", user.password);
 
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({message:"server error"});
-      }
+    // 2. Check if password exists on the user document (e.g. social login users won't have one)
+    if (!user.password) {
+      return res.status(400).json({
+        message: "No password set for this account. Try logging in with Google/OAuth."
+      });
+    }
+
+    // 3. Compare password safely
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials / wrong password" });
+    }
+
+    const token = setUser(user);
+    console.log("User logged in:", user);
+
+    res.cookie("uid", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Production me true rakhein
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+    });
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: { id: user._id, user_name: user.user_name, email: user.email },
+    });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
 }
 
 function handleSignout(req,res){

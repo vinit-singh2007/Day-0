@@ -24,7 +24,7 @@ import { getAuth, signOut } from "firebase/auth";
 const nav = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Simulations", icon: Zap, path: "/dashboard/simulation" },
-  { label: "Tasks", icon: ListChecks, path: "/dashboard/task" },
+  { label: "Skill Assessment", icon: ListChecks, path: "/dashboard/assessment" },
   { label: "Path", icon: RouteIcon, path: "/dashboard/path" },
   { label: "Inbox", icon: Inbox, path: "/dashboard/path" },
   { label: "Network", icon: Users, path: "/dashboard/path" },
@@ -57,7 +57,8 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
       if (res.ok) {
         localStorage.removeItem("isLoggedIn");
         localStorage.removeItem("user");
-        if (onNavigate) onNavigate(); // Mobile drawer close karne ke liye
+        localStorage.removeItem("active_domain");
+        if (onNavigate) onNavigate();
         navigate("/");
       }
     } catch (error) {
@@ -68,7 +69,6 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Card ke bahar click karne par menu auto-close karne ke liye
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -149,7 +149,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
 
       <div className="mt-auto flex flex-col gap-1 pt-8">
         <div className="relative" ref={menuRef}>
-          {/* FLOATING CARD (Fixed for Light & Dark mode + No horizontal scrollbar) */}
+          {/* FLOATING CARD */}
           {isOpen && (
             <div className="absolute bottom-12 left-0 right-0 z-50 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
               <div className="flex flex-col gap-0.5">

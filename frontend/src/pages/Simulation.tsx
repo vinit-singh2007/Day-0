@@ -146,13 +146,19 @@ const sims = [
   },
 ];
 
-const Simulations = () => {
+interface handleNavigateSimulation {
+  onNavigate?: () => void;
+}
+
+
+const Simulations = ({onNavigate}:handleNavigateSimulation) => {
   const navigate = useNavigate();
 
-  const handleStartSimulation = (role: string, comingSoon: boolean) => {
+  const handleStartSimulation = (path: string, comingSoon: boolean) => {
     if (comingSoon) return;
-
-    navigate(`/assessment?role=${role}`);
+    localStorage.setItem("active_domain",path)
+    const encodedPath = encodeURIComponent(path);
+    navigate(`/dashboard/assessment/${encodedPath}`);
   };
 
   return (
@@ -216,7 +222,7 @@ const Simulations = () => {
                           disabled={sim.comingSoon}
                           onClick={() =>
                             handleStartSimulation(
-                              sim.id,
+                              sim.path,
                               sim.comingSoon
                             )
                           }
@@ -249,5 +255,4 @@ const Simulations = () => {
     </div>
   );
 };
-
 export default Simulations;

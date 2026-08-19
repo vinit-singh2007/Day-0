@@ -57,7 +57,7 @@ const LoginPage = ({ setIsAuthenticated }: LoginProps) => {
 
         if (response.ok) {
           setIsAuthenticated(true);
-          navigate("/dashboard", { replace: true });
+          navigate("/simulation", { replace: true });
         } else {
           // If session expired on backend, clear local flag
           localStorage.removeItem("isLoggedIn");
