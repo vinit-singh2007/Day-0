@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import bgDark from "../assets/Dark-bg.png"; 
 import bgLight from "../assets/Light-bg.png"
 
-// import bgLight from "../assets/image.png"
 
 import { ArrowRight, Cpu, Code2, Terminal, ShieldAlert } from 'lucide-react';
 

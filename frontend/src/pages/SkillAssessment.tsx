@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Clock, Zap, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
+import { Clock, Zap, ChevronRight, ChevronLeft, ArrowRight, CheckCircle, Award, FileText } from 'lucide-react';
 import { Toast } from '../components/ui/Toast';
 import { dataScientistContent, webDeveloperContent, uiuxDesignerContent } from "./Domains.tsx";
+import { useAuth } from '@/context/AuthContext.tsx';
+import { EvaluationModal, EvaluationData } from './EvaluationModel.tsx';
 
 const domainData: Record<string, any> = {
   "Data Scientist": dataScientistContent,
@@ -12,28 +14,49 @@ const domainData: Record<string, any> = {
 
 export const AssessmentPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // App State
   const [currentDay, setCurrentDay] = useState<number>(1);
   const [response, setResponse] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [completedDays, setCompletedDays] = useState<number[]>([]);
+
+  // AI Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalError, setEvalError] = useState<string | null>(null);
+  const [evalData, setEvalData] = useState<EvaluationData | null>(null);
 
   const { path } = useParams<{ path?: string }>();
   const decodedPath = path ? decodeURIComponent(path) : "";
-  
-  useEffect(() => {
-    const activeDomain = localStorage.getItem("active_domain"); 
 
-    // Agar URL me domain nahi hai aur LocalStorage me activeDomain milta hai toh navigate kar do
+  useEffect(() => {
+    const activeDomain = localStorage.getItem("active_domain");
+
     if (!decodedPath && activeDomain) {
       const formattedPath = encodeURIComponent(activeDomain);
       navigate(`/dashboard/assessment/${formattedPath}`, { replace: true });
     }
   }, [decodedPath, navigate]);
 
-  // Active domain content check
+  // Load completed days from LocalStorage
+  useEffect(() => {
+    if (decodedPath) {
+      const savedCompleted = JSON.parse(localStorage.getItem(`completed_days_${decodedPath}`) || "[]");
+      setCompletedDays(savedCompleted);
+    }
+  }, [decodedPath]);
+
+  // Sync draft / completed response when changing days
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(`draft_day_${currentDay}`) || '';
+    setResponse(savedDraft);
+  }, [currentDay]);
+
   const CurrentDomain = domainData[decodedPath];
   const currentAssessment = CurrentDomain ? CurrentDomain[currentDay - 1] : null;
+  const isCurrentDaySubmitted = completedDays.includes(currentDay);
 
   const handleSaveDraft = () => {
     localStorage.setItem(`draft_day_${currentDay}`, response);
@@ -41,25 +64,58 @@ export const AssessmentPage: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (currentDay > 1) {
-      const prevDay = currentDay - 1;
-      setCurrentDay(prevDay);
-      setResponse(localStorage.getItem(`draft_day_${prevDay}`) || '');
-    }
+    if (currentDay > 1) setCurrentDay(currentDay - 1);
   };
 
   const handleNextDay = () => {
-    if (currentDay < 7) {
-      const nextDay = currentDay + 1;
-      setCurrentDay(nextDay);
-      setResponse(localStorage.getItem(`draft_day_${nextDay}`) || '');
-    }
+    if (currentDay < 7) setCurrentDay(currentDay + 1);
   };
 
   const handleEvaluate = async () => {
-    // Evaluate action logic
-  };
+    setIsModalOpen(true);
+    setIsEvaluating(true);
+    setEvalError(null);
+    setEvalData(null);
 
+    try {
+      const baseURL = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${baseURL}/api/evaluate-assessment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          userId: user?._id,
+          domain: decodedPath,
+          day: currentDay,
+          userResponse: response,
+          taskTitle: currentAssessment?.title,
+          dataset: currentAssessment?.dataset,
+          scenario: currentAssessment?.scenario,
+          task: currentAssessment?.task,
+          submission: currentAssessment?.submission,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.error || "Failed to connect to the evaluation service.");
+      }
+
+      setEvalData(result);
+
+      const updatedCompleted = [...new Set([...completedDays, currentDay])];
+      setCompletedDays(updatedCompleted);
+      localStorage.setItem(`completed_days_${decodedPath}`, JSON.stringify(updatedCompleted));
+
+    } catch (err: any) {
+      setEvalError(err.message || "Failed to connect to the evaluation service.");
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   if (!currentAssessment) {
     return (
@@ -73,7 +129,7 @@ export const AssessmentPage: React.FC = () => {
               No Active Domain
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              To Do Skill Assesment First Select The Domain!!
+              To Do Skill Assessment First Select The Domain!!
             </p>
           </div>
           <button
@@ -109,7 +165,6 @@ export const AssessmentPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-6 w-full md:w-auto justify-end">
-          {/* Progress Bar */}
           <div className="flex flex-col items-end gap-2">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               Exercise {currentDay} of 7
@@ -191,35 +246,97 @@ export const AssessmentPage: React.FC = () => {
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Your Detailed Response (Day {currentDay})
             </label>
-            <span className="text-xs text-slate-400 italic">Be detailed & comprehensive</span>
+            {isCurrentDaySubmitted ? (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <CheckCircle className="w-4 h-4" /> Submission Evaluated & Locked
+              </span>
+            ) : (
+              <span className="text-xs text-slate-400 italic">Be detailed & comprehensive</span>
+            )}
           </div>
+
           <textarea 
-            value={response}
+            disabled={isCurrentDaySubmitted}
+            value={
+              isCurrentDaySubmitted 
+                ? `✅ Assessment Completed for Day ${currentDay}\n\nSubmitted Solution:\n${response}` 
+                : response
+            }
             onChange={(e) => setResponse(e.target.value)}
             placeholder={`Type your solution for Day ${currentDay} (${currentAssessment.title})...`}
-            className="w-full min-h-[220px] p-4 rounded-2xl border transition outline-none text-sm leading-relaxed resize-y bg-slate-50/50 border-slate-200 focus:border-blue-600 text-slate-900 placeholder-slate-400 dark:bg-slate-950/80 dark:border-slate-800 dark:focus:border-blue-500 dark:text-slate-100 dark:placeholder-slate-600"
+            className={`w-full min-h-[220px] p-5 rounded-2xl border transition outline-none text-sm leading-relaxed resize-y ${
+              isCurrentDaySubmitted
+                ? "bg-emerald-50/80 border-emerald-500/80 text-emerald-900 font-semibold cursor-not-allowed dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-200"
+                : "bg-slate-50/50 border-slate-200 focus:border-blue-600 text-slate-900 placeholder-slate-400 dark:bg-slate-950/80 dark:border-slate-800 dark:focus:border-blue-500 dark:text-slate-100 dark:placeholder-slate-600"
+            }`}
           />
         </div>
 
-        {/* Buttons */}
-        <div className="mt-8 flex justify-end gap-3">
-          <button 
-            type="button"
-            onClick={handleSaveDraft}
-            className="px-5 py-2.5 rounded-xl border text-sm font-semibold transition border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Save Draft
-          </button>
-          
-          <button 
-            type="button"
-            onClick={handleEvaluate}
-            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all active:scale-95 border border-blue-400/30"
-          >
-            Submit Day {currentDay} Task
-          </button>
+        {/* Action Buttons */}
+        <div className="mt-8 flex justify-end gap-3 flex-wrap">
+          {isCurrentDaySubmitted ? (
+            currentDay === 7 ? (
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/e-certificate')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <Award className="w-5 h-5" />
+                  Get E-Certificate
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/ai-review')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+                >
+                  <FileText className="w-5 h-5" />
+                  Full AI Review
+                </button>
+              </div>
+            ) : (
+              <div className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center justify-center gap-2 shadow-sm">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                Day {currentDay} Task Completed & Evaluated
+              </div>
+            )
+          ) : (
+            <>
+              <button 
+                type="button"
+                onClick={handleSaveDraft}
+                className="px-5 py-2.5 rounded-xl border text-sm font-semibold transition border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Save Draft
+              </button>
+              
+              <button 
+                type="button"
+                onClick={handleEvaluate}
+                className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-bold shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all active:scale-95 border border-blue-400/30"
+              >
+                Submit Day {currentDay} Task
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* AI Evaluation Modal Component */}
+      <EvaluationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        isEvaluating={isEvaluating}
+        evalError={evalError}
+        evalData={evalData}
+        currentDay={currentDay}
+        onRetry={handleEvaluate}
+        onNextDay={() => {
+          setIsModalOpen(false);
+          handleNextDay();
+        }}
+      />
 
       <Toast 
         message={`Saved Day ${currentDay} draft successfully!`} 

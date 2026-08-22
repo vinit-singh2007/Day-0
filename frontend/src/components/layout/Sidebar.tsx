@@ -1,12 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Inbox,
-  Route as RouteIcon,
   ListChecks,
-  Users,
+  Bot, 
+  UserCheck, 
+  FileText, 
+  Award,
   Settings,
-  LogOut,
   Zap,
   X,
   History,
@@ -16,25 +16,31 @@ import {
   Sun,
   HelpCircle,
   MessageSquarePlus,
+  Crown,
 } from "lucide-react";
 import { ThemeToggle } from "@/hooks/use-theme";
 import { useEffect, useRef, useState } from "react";
-import { getAuth, signOut } from "firebase/auth";
 
 const nav = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
   { label: "Simulations", icon: Zap, path: "/dashboard/simulation" },
   { label: "Skill Assessment", icon: ListChecks, path: "/dashboard/assessment" },
-  { label: "Path", icon: RouteIcon, path: "/dashboard/path" },
-  { label: "Inbox", icon: Inbox, path: "/dashboard/path" },
-  { label: "Network", icon: Users, path: "/dashboard/path" },
+  { label: "AI Review", icon: FileText, path: "/dashboard/ai-review" },
+  { label: "E-Certificate", icon: Award, path: "/dashboard/e-certificate" },
+  { label: "AI Interview", icon: Bot, path: "/dashboard/other" },
+  { 
+    label: "Human Interview", 
+    icon: UserCheck, 
+    path: "/dashboard/other", 
+    isPremium: true 
+  },
 ];
 
-const cohort = [
-  { name: "Aarav Mehta", role: "PM Path", initials: "AM" },
-  { name: "Sara Lin", role: "Data Path", initials: "SL" },
-  { name: "Noah Ade", role: "Design Path", initials: "NA" },
-];
+// const cohort = [
+//   { name: "Aarav Mehta", role: "PM Path", initials: "AM" },
+//   { name: "Sara Lin", role: "Data Path", initials: "SL" },
+//   { name: "Noah Ade", role: "Design Path", initials: "NA" },
+// ];
 
 interface SidebarContentProps {
   onNavigate?: () => void;
@@ -42,29 +48,6 @@ interface SidebarContentProps {
 
 const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    const auth = getAuth();
-    try {
-      await signOut(auth);
-      const baseURL = import.meta.env.VITE_API_URL;
-      
-      const res = await fetch(`${baseURL}/api/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("user");
-        localStorage.removeItem("active_domain");
-        if (onNavigate) onNavigate();
-        navigate("/");
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
 
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -100,7 +83,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
       </p>
 
       <nav className="flex flex-col gap-1">
-        {nav.map(({ label, icon: Icon, path }) => (
+        {nav.map(({ label, icon: Icon, path, isPremium }) => (
           <NavLink
             key={label}
             to={path}
@@ -116,15 +99,22 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
           >
             <Icon className="h-4 w-4 shrink-0" />
             <span className="truncate">{label}</span>
+
+            {/* Premium Indicator Sign */}
+            {isPremium && (
+              <Crown 
+                className="ml-auto h-4 w-4 text-amber-400 fill-amber-400/20 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] shrink-0" 
+              />
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <p className="label-mono px-2 pb-3 pt-8 text-muted-foreground">
+      {/* <p className="label-mono px-2 pb-3 pt-8 text-muted-foreground">
         Cohort
-      </p>
+      </p> */}
 
-      <ul className="flex flex-col gap-3 px-2">
+      {/* <ul className="flex flex-col gap-3 px-2">
         {cohort.map((person) => (
           <li
             key={person.name}
@@ -145,7 +135,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
             </span>
           </li>
         ))}
-      </ul>
+      </ul> */}
 
       <div className="mt-auto flex flex-col gap-1 pt-8">
         <div className="relative" ref={menuRef}>
@@ -212,14 +202,6 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
             <span>Settings</span>
           </button>
         </div>
-
-        <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
-        </button>
       </div>
     </>
   );

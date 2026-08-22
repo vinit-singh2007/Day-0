@@ -2,6 +2,7 @@ import React, { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useFirebaseAuth from "../components/auth/globalAuth";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 // Component Props interface
 interface LoginProps {
@@ -13,6 +14,7 @@ interface LoginProps {
  * Handles User Login, Registration, and Social Authentication (Google & GitHub)
  */
 const LoginPage = ({ setIsAuthenticated }: LoginProps) => {
+  const {refetchProfile}=useAuth();
   // Form view state: toggle between Sign In (false) and Sign Up (true)
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
 
@@ -42,6 +44,8 @@ const LoginPage = ({ setIsAuthenticated }: LoginProps) => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (!isLoggedIn) return;
+
+    
 
     // AbortController to handle component unmounting safely
     const controller = new AbortController();
@@ -115,12 +119,23 @@ const LoginPage = ({ setIsAuthenticated }: LoginProps) => {
           formData.email?.split("@")[0] ||
           "User";
 
+          const userEmail = 
+          data.user?.email || 
+          formData.email || 
+          "user@example.com";
+
         // Store non-sensitive user metadata locally
         localStorage.setItem("isLoggedIn", "true");
+        await refetchProfile();
         localStorage.setItem(
-          "user",
-          JSON.stringify({ name: displayName })
-        );
+            "jobsim_user", 
+            JSON.stringify({
+              id: data.user?.id || data.user?._id,
+              name: displayName,
+              email: userEmail,
+              provider: data.user?.provider || "email"
+            })
+          );
 
         setIsAuthenticated(true);
         navigate("/dashboard", { replace: true });
