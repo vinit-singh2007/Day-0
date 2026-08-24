@@ -6,6 +6,7 @@ import handleFirebaseAuth from "../controllers/firebaseauth.js";
 import { getUserProfile, updateDomainAttempt } from "../controllers/userProfiles.js";
 import { handleAssesment } from "../controllers/assesment.js";
 import { getFullAIReview } from "../controllers/fullreview.js";
+import { getUserProgress } from "../controllers/userProgress.js";
 
 const router = express.Router();
 
@@ -18,9 +19,13 @@ router.post("/firebase-auth", handleFirebaseAuth);
 // Dashboard Route
 router.get("/dash", verifyToken, getDashboard);
 
-// User Profile Routes
-router.get("/profile", verifyToken, getUserProfile); // AuthContext yahan GET hit karega
-router.post("/update-domain", verifyToken, updateDomainAttempt); // Domain attempt update karne ke liye alag route
-router.post("/evaluate-assessment",verifyToken,handleAssesment)
-router.post('/full-ai-review', getFullAIReview);
+// User Profile & Progress Routes
+router.get("/profile", verifyToken, getUserProfile); 
+router.get('/user-progress/:domain', verifyToken, getUserProgress);
+router.post("/update-domain", verifyToken, updateDomainAttempt); 
+
+// Assessment & Review Routes
+router.post("/evaluate-assessment", verifyToken, handleAssesment);
+router.post("/full-ai-review", verifyToken, getFullAIReview); // 🔐 Secured with verifyToken
+
 export default router;

@@ -21,6 +21,7 @@ export const AssessmentPage: React.FC = () => {
   const [response, setResponse] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [completedDays, setCompletedDays] = useState<number[]>([]);
+  const [allResponses, setAllResponses] = useState<any[]>([]);
 
   // AI Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,27 +41,38 @@ export const AssessmentPage: React.FC = () => {
     }
   }, [decodedPath, navigate]);
 
-  // Load completed days from LocalStorage
+  // Load completed days scoped with specific User ID & Domain
   useEffect(() => {
-    if (decodedPath) {
-      const savedCompleted = JSON.parse(localStorage.getItem(`completed_days_${decodedPath}`) || "[]");
+    if (decodedPath && user?._id) {
+      const storageKey = `completed_days_${user._id}_${decodedPath}`;
+      const savedCompleted = JSON.parse(localStorage.getItem(storageKey) || "[]");
       setCompletedDays(savedCompleted);
+    } else {
+      setCompletedDays([]);
     }
-  }, [decodedPath]);
+  }, [decodedPath, user?._id]);
 
-  // Sync draft / completed response when changing days
+  // Sync draft response or submitted response scoped with specific User ID, Domain & Day
   useEffect(() => {
-    const savedDraft = localStorage.getItem(`draft_day_${currentDay}`) || '';
-    setResponse(savedDraft);
-  }, [currentDay]);
+    if (user?._id && decodedPath) {
+      const draftKey = `draft_day_${user._id}_${decodedPath}_${currentDay}`;
+      const savedDraft = localStorage.getItem(draftKey) || '';
+      setResponse(savedDraft);
+    } else {
+      setResponse('');
+    }
+  }, [currentDay, decodedPath, user?._id]);
 
   const CurrentDomain = domainData[decodedPath];
   const currentAssessment = CurrentDomain ? CurrentDomain[currentDay - 1] : null;
   const isCurrentDaySubmitted = completedDays.includes(currentDay);
 
   const handleSaveDraft = () => {
-    localStorage.setItem(`draft_day_${currentDay}`, response);
-    setShowToast(true);
+    if (user?._id && decodedPath) {
+      const draftKey = `draft_day_${user._id}_${decodedPath}_${currentDay}`;
+      localStorage.setItem(draftKey, response);
+      setShowToast(true);
+    }
   };
 
   const handleBack = () => {
@@ -71,47 +83,77 @@ export const AssessmentPage: React.FC = () => {
     if (currentDay < 7) setCurrentDay(currentDay + 1);
   };
 
-  const handleEvaluate = async () => {
+ const handleEvaluate = async () => {
+    // Validation check matching backend expectation (min length 10)
+    if (!response || response.trim().length < 10) {
+      setEvalError("Please provide a detailed response (at least 10 characters) before submitting.");
+      setIsModalOpen(true);
+      return;
+    }
+
     setIsModalOpen(true);
     setIsEvaluating(true);
     setEvalError(null);
     setEvalData(null);
 
     try {
-      const baseURL = import.meta.env.VITE_API_URL;
+      const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      
+      // Explicitly construct the payload to ensure userResponse is present
+      const payload: Record<string, any> = {};
+      payload.userId = user?._id ;
+      payload.domainName = decodedPath;
+      payload.domain = decodedPath;
+      payload.day = Number(currentDay);
+      payload.userResponse = String(response); // Explicitly converted to string and mapped
+      payload.taskTitle = currentAssessment?.title || "";
+      payload.dataset = currentAssessment?.dataset || "";
+      payload.scenario = currentAssessment?.scenario || "";
+      payload.task = currentAssessment?.task || "";
+      payload.submission = currentAssessment?.submission || "";
+
+      console.log("FINAL PAYLOAD BEING SENT TO BACKEND:", JSON.stringify(payload, null, 2));
+
       const res = await fetch(`${baseURL}/api/evaluate-assessment`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          userId: user?._id,
-          domain: decodedPath,
-          day: currentDay,
-          userResponse: response,
-          taskTitle: currentAssessment?.title,
-          dataset: currentAssessment?.dataset,
-          scenario: currentAssessment?.scenario,
-          task: currentAssessment?.task,
-          submission: currentAssessment?.submission,
-        }),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
       });
 
-      const result = await res.json();
+      const responseText = await res.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = { message: responseText || "Unknown server error" };
+      }
 
       if (!res.ok) {
-        throw new Error(result.error || "Failed to connect to the evaluation service.");
+        throw new Error(result.error || result.message || `Server error code: ${res.status}`);
       }
 
       setEvalData(result);
 
-      const updatedCompleted = [...new Set([...completedDays, currentDay])];
+      // Immediately update local states & save to localStorage
+      const updatedCompleted = [...new Set([...completedDays, Number(currentDay)])];
       setCompletedDays(updatedCompleted);
-      localStorage.setItem(`completed_days_${decodedPath}`, JSON.stringify(updatedCompleted));
+      if (user?._id && decodedPath) {
+        localStorage.setItem(`completed_days_${user._id}_${decodedPath}`, JSON.stringify(updatedCompleted));
+      }
+
+      const existingIndex = allResponses.findIndex((r: any) => Number(r.day) === Number(currentDay));
+      if (existingIndex >= 0) {
+        const updated = [...allResponses];
+        updated[existingIndex] = { ...updated[existingIndex], response, userAnswer: response };
+        setAllResponses(updated);
+      } else {
+        setAllResponses([...allResponses, { day: currentDay, response, userAnswer: response }]);
+      }
 
     } catch (err: any) {
-      setEvalError(err.message || "Failed to connect to the evaluation service.");
+      console.error("Evaluation Error Details:", err);
+      setEvalError(err.message || "Failed to connect to evaluation service.");
     } finally {
       setIsEvaluating(false);
     }
@@ -120,7 +162,7 @@ export const AssessmentPage: React.FC = () => {
   if (!currentAssessment) {
     return (
       <div className="min-h-[80vh] w-full flex items-center justify-center p-6">
-        <div className="max-w-md w-full border rounded-3xl p-8 text-center space-y-6 bg-white border-slate-200/80 shadow-xl shadow-slate-200/50 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+        <div className="max-w-md w-full border rounded-3xl p-8 text-center space-y-6 bg-white border-slate-200/85 shadow-xl shadow-slate-200/50 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto border border-blue-500/20">
             <Zap className="w-8 h-8" />
           </div>
@@ -188,6 +230,7 @@ export const AssessmentPage: React.FC = () => {
           
           <div className="flex items-center gap-3 px-3 py-1.5 rounded-xl border bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800/50 dark:border-slate-700/50 dark:text-slate-200">
             <button 
+              type="button"
               onClick={handleBack}
               disabled={currentDay === 1}
               className="p-1 rounded-lg hover:bg-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
@@ -196,6 +239,7 @@ export const AssessmentPage: React.FC = () => {
             </button>
             <span className="text-sm font-bold">Day {currentDay}</span>
             <button 
+              type="button"
               onClick={handleNextDay}
               disabled={currentDay === 7}
               className="p-1 rounded-lg hover:bg-blue-500/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
@@ -240,7 +284,7 @@ export const AssessmentPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Text Area Input */}
+        {/* Text Area Input or Submitted View */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -251,25 +295,29 @@ export const AssessmentPage: React.FC = () => {
                 <CheckCircle className="w-4 h-4" /> Submission Evaluated & Locked
               </span>
             ) : (
-              <span className="text-xs text-slate-400 italic">Be detailed & comprehensive</span>
+              <span className="text-xs text-slate-400 italic">Be detailed & comprehensive (min 10 characters)</span>
             )}
           </div>
 
-          <textarea 
-            disabled={isCurrentDaySubmitted}
-            value={
-              isCurrentDaySubmitted 
-                ? `✅ Assessment Completed for Day ${currentDay}\n\nSubmitted Solution:\n${response}` 
-                : response
-            }
-            onChange={(e) => setResponse(e.target.value)}
-            placeholder={`Type your solution for Day ${currentDay} (${currentAssessment.title})...`}
-            className={`w-full min-h-[220px] p-5 rounded-2xl border transition outline-none text-sm leading-relaxed resize-y ${
-              isCurrentDaySubmitted
-                ? "bg-emerald-50/80 border-emerald-500/80 text-emerald-900 font-semibold cursor-not-allowed dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-200"
-                : "bg-slate-50/50 border-slate-200 focus:border-blue-600 text-slate-900 placeholder-slate-400 dark:bg-slate-950/80 dark:border-slate-800 dark:focus:border-blue-500 dark:text-slate-100 dark:placeholder-slate-600"
-            }`}
-          />
+          {isCurrentDaySubmitted ? (
+            <div className="w-full min-h-[220px] p-5 rounded-2xl border bg-emerald-50/80 border-emerald-500/80 text-emerald-900 dark:bg-emerald-950/30 dark:border-emerald-500/50 dark:text-emerald-200 space-y-3">
+              <div className="flex items-center gap-2 font-bold text-emerald-700 dark:text-emerald-400">
+                <CheckCircle className="w-5 h-5" />
+                <span>Assessment Completed for Day {currentDay}</span>
+              </div>
+              <div className="text-xs font-bold tracking-wider uppercase opacity-75">Submitted Solution:</div>
+              <div className="whitespace-pre-wrap text-sm leading-relaxed font-normal bg-white/60 dark:bg-slate-900/60 p-4 rounded-xl border border-emerald-500/20">
+                {response || "No response content found."}
+              </div>
+            </div>
+          ) : (
+            <textarea 
+              value={response}
+              onChange={(e) => setResponse(e.target.value)}
+              placeholder={`Type your solution for Day ${currentDay} (${currentAssessment.title})...`}
+              className="w-full min-h-[220px] p-5 rounded-2xl border transition outline-none text-sm leading-relaxed resize-y bg-slate-50/50 border-slate-200 focus:border-blue-600 text-slate-900 placeholder-slate-400 dark:bg-slate-950/80 dark:border-slate-800 dark:focus:border-blue-500 dark:text-slate-100 dark:placeholder-slate-600"
+            />
+          )}
         </div>
 
         {/* Action Buttons */}

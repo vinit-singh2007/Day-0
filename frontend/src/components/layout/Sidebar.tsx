@@ -27,7 +27,7 @@ const nav = [
   { label: "Skill Assessment", icon: ListChecks, path: "/dashboard/assessment" },
   { label: "AI Review", icon: FileText, path: "/dashboard/ai-review" },
   { label: "E-Certificate", icon: Award, path: "/dashboard/e-certificate" },
-  { label: "AI Interview", icon: Bot, path: "/dashboard/other" },
+  { label: "AI Interview", icon: Bot, path: "/dashboard/ai-interview" },
   { 
     label: "Human Interview", 
     icon: UserCheck, 
@@ -70,11 +70,11 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
         onClick={onNavigate}
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
-          0
+          CF
         </span>
 
         <span className="font-display text-lg font-bold tracking-tight">
-          DAY 0
+          Career Forge
         </span>
       </NavLink>
 

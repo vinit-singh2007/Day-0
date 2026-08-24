@@ -1,9 +1,38 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import AIReview from "../models/aiReview.js";
+import { Submission } from "../models/submission.js";
+import NodeCache from "node-cache";
 
+// Initialize cache: standard TTL of 1 hour (3600 seconds)
+const assessmentCache = new NodeCache({ stdTTL: 3600 });
+
+// 1. 🛠️ User Progress fetch karne ka handler (GET request ke liye)
+export const getUserProgress = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.query.userId;
+    const { domain } = req.params;
+
+    if (!userId || !domain) {
+      return res.status(400).json({ error: "User ID aur Domain zaroori hain." });
+    }
+
+    // Database se user ka submission status fetch karein
+    const submission = await Submission.findOne({ userId, domain });
+
+    if (!submission) {
+      return res.status(200).json({ completedDays: [] });
+    }
+
+    return res.status(200).json({ completedDays: submission.completedDays || [] });
+  } catch (error) {
+    console.error("Progress fetch error:", error);
+    return res.status(500).json({ error: "Progress fetch nahi ho payi." });
+  }
+};
+
+// 2. 🛠️ UPDATED: Assessment evaluate karne aur DB me Save karne ka handler (with Caching & Rate-Limit Handling)
 export const handleAssesment = async (req, res) => {
   try {
-    // 1. Extract userId (supports auth middleware or request body)
     const userId = req.user?._id || req.body.userId;
 
     if (!userId) {
@@ -15,14 +44,49 @@ export const handleAssesment = async (req, res) => {
       return res.status(500).json({ error: "Server API key configuration error." });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    // 2. Destructure properties
     const { domain, day, userResponse, taskTitle, dataset, scenario, task, submission } = req.body;
 
     if (!userResponse || userResponse.trim().length < 10) {
       return res.status(400).json({ error: "Please provide a detailed response before submitting." });
     }
+
+    // 💡 Caching Step: Unique cache key based on user response, domain, and day
+    const cacheKey = `assessment_${userId}_${domain}_${day}_${userResponse.trim()}`;
+
+    if (assessmentCache.has(cacheKey)) {
+      console.log("⚡ Serving assessment evaluation from cache...");
+      const cachedData = assessmentCache.get(cacheKey);
+      
+      // Even if cached, ensure DB tracks the submission if it wasn't recorded before
+     const updatedSubmission = await Submission.findOneAndUpdate(
+        { userId, domain },
+        {
+          $addToSet: { completedDays: Number(day) },
+          $push: {
+            responses: {
+              day: Number(day),
+              response: userResponse,
+              taskTitle: taskTitle,
+              evaluation: cachedData.parsedData,
+              submittedAt: new Date(),
+          },
+        },
+      },
+      { upsert: true, returnDocument: 'after' } 
+  );
+
+      return res.status(200).json({
+        score: cachedData.parsedData.skillScore.overallScore,
+        feedback: cachedData.parsedData.aiSuggestions.join(" "),
+        strengths: cachedData.parsedData.strengths,
+        improvements: cachedData.parsedData.weaknesses,
+        reviewId: cachedData.reviewId,
+        completedDays: updatedSubmission.completedDays,
+        source: "cache"
+      });
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
       You are an industry technical assessor evaluating a candidate's submission for a ${domain} role.
@@ -43,15 +107,15 @@ export const handleAssesment = async (req, res) => {
       Provide realistic entry-to-mid level salary predictions in INR based on their solution quality.
     `;
 
-    // 3. Retry mechanism
     let response;
     let attempts = 0;
     const maxAttempts = 3;
 
+    // 💡 Robust Retry Loop with Exponential Back-off for 429 Errors
     while (attempts < maxAttempts) {
       try {
         response = await ai.models.generateContent({
-          model: "gemini-3.6-flash", // Correct model identifier
+          model: "gemini-3.6-flash", 
           contents: prompt,
           config: {
             responseMimeType: "application/json",
@@ -94,18 +158,23 @@ export const handleAssesment = async (req, res) => {
             },
           },
         });
-        break; // Success
+        break; 
       } catch (err) {
         attempts++;
-        console.warn(`Attempt ${attempts} failed. Retrying...`);
+        console.warn(`Attempt ${attempts} failed. Error: ${err.message}`);
+        
         if (attempts >= maxAttempts) throw err;
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Give a safer wait time (e.g., 14 seconds based on the quota reset advice, or increasing backoff)
+        const waitTime = attempts === 1 ? 5000 : 14000; 
+        console.log(`Waiting ${waitTime / 1000} seconds before retrying...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
       }
     }
 
     const parsedData = JSON.parse(response.text);
 
-    // 4. Save review directly in MongoDB
+    // 💾 DB Step A: AI Review Save Karein
     const newReview = await AIReview.create({
       userId,
       domainName: domain,
@@ -116,88 +185,47 @@ export const handleAssesment = async (req, res) => {
       weaknesses: parsedData.weaknesses,
     });
 
+    // 💾 DB Step B: User progress aur Submission update karein
+    const updatedSubmission = await Submission.findOneAndUpdate(
+      { userId, domain },
+      {
+        $addToSet: { completedDays: Number(day) },
+        $push: {
+          responses: {
+            day: Number(day),
+            response: userResponse,
+            taskTitle: taskTitle,
+            evaluation: parsedData,
+            submittedAt: new Date(),
+          },
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    // 💡 Save result into Cache to prevent repeated free-tier exhaustion
+    assessmentCache.set(cacheKey, { parsedData, reviewId: newReview._id });
+
     return res.status(200).json({
       score: parsedData.skillScore.overallScore,
       feedback: parsedData.aiSuggestions.join(" "),
       strengths: parsedData.strengths,
       improvements: parsedData.weaknesses,
       reviewId: newReview._id,
+      completedDays: updatedSubmission.completedDays,
+      source: "api"
     });
 
   } catch (error) {
     console.error("Database or AI Error:", error);
+    
+    // Custom friendly message if it's explicitly a rate limit error
+    if (error.status === 429) {
+      return res.status(429).json({ 
+        error: "AI rate limit reached. Please wait roughly 15 seconds before submitting your response again." 
+      });
+    }
+
     return res.status(500).json({ error: "Failed to evaluate assessment due to connection error." });
   }
 };
-
-// export const handleAssesment = async (req, res) => {
-//   try {
-//     const userId = req.user?._id || req.body.userId;
-//     const { domain, day, userResponse } = req.body;
-
-//     if (!userResponse || userResponse.trim().length < 10) {
-//       return res.status(400).json({ error: "Please provide a detailed response before submitting." });
-//     }
-
-//     // ==========================================
-//     // 🧪 TESTING MODE (MOCK RESPONSE)
-//     // Real Gemini API call skip karne ke liye:
-//     // ==========================================
-    
-//     // Fake delay taaki loading spinner check kar sako (1.5 seconds)
-//     await new Promise((resolve) => setTimeout(resolve, 1500));
-
-//     // Mock AI JSON Data
-//     const parsedData = {
-//       skillScore: {
-//         technicalScore: 85,
-//         problemSolvingScore: 80,
-//         communicationScore: 90,
-//         overallScore: 85,
-//       },
-//       salaryPrediction: {
-//         minSalary: 600000,
-//         maxSalary: 900000,
-//         currency: "INR",
-//       },
-//       aiSuggestions: [
-//         "Great structure and clean code logic.",
-//         "Consider optimizing time complexity for edge cases."
-//       ],
-//       strengths: ["Clear approach", "Good handling of state"],
-//       weaknesses: ["Needs better error handling"],
-//     };
-
-//     // Save mock review directly in MongoDB
-//     const newReview = await AIReview.create({
-//       userId,
-//       domainName: domain,
-//       skillScore: parsedData.skillScore,
-//       salaryPrediction: parsedData.salaryPrediction,
-//       aiSuggestions: parsedData.aiSuggestions,
-//       strengths: parsedData.strengths,
-//       weaknesses: parsedData.weaknesses,
-//     });
-
-//     // Frontend ko direct dummy response bhej do
-//     return res.status(200).json({
-//       score: parsedData.skillScore.overallScore,
-//       feedback: parsedData.aiSuggestions.join(" "),
-//       strengths: parsedData.strengths,
-//       improvements: parsedData.weaknesses,
-//       reviewId: newReview._id,
-//     });
-
-//     // ==========================================
-//     // REAL GEMINI API CALL (Testing ke baad uncomment kar lena)
-//     // ==========================================
-//     /*
-//     const ai = new GoogleGenAI({ apiKey });
-//     ... (tumhara original Gemini wala code) ...
-//     */
-
-//   } catch (error) {
-//     console.error("Database or AI Error:", error);
-//     return res.status(500).json({ error: "Failed to evaluate assessment due to connection error." });
-//   }
-// };

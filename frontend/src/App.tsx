@@ -12,6 +12,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/routes/ProtectedRoutes";
 import  { AIReviewPage } from "./pages/AiReview";
 import { ECertificate } from "./pages/Ecertificate";
+import { AIInterview } from "./pages/AiInterview";
 
 const App = () => {
   // LocalStorage se login state parse kar rahe hain
@@ -63,6 +64,7 @@ const App = () => {
             <Route path="assessment/:path?" element={<AssessmentPage />} />
             <Route path="e-certificate" element={<ECertificate />} />
             <Route path="ai-review" element={<AIReviewPage/>} />
+            <Route path="ai-interview" element={<AIInterview/>} />
             <Route path="other" element={<Underconstruction />} />
           </Route>
         </Route>

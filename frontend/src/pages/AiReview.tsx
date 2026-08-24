@@ -50,53 +50,55 @@ export const AIReviewPage: React.FC = () => {
   }, [path]);
 
   useEffect(() => {
-    if (!activeDomain) {
+    if (!activeDomain || !user?._id) {
       setIsLoading(false);
       return;
     }
 
-    const savedCompleted: number[] = JSON.parse(
-      localStorage.getItem(`completed_days_${activeDomain}`) || "[]"
-    );
-    setCompletedDays(savedCompleted);
+    const fetchReviewAndProgress = async () => {
+      try {
+        setIsLoading(true);
+        const baseURL = import.meta.env.VITE_API_URL;
+        
+        // 🚀 Cookie-based authentication ke liye credentials: "include" use kiya gaya hai
+        const res = await fetch(`${baseURL}/api/full-ai-review`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // 👈 Ye zaroori hai cookie pass karne ke liye
+          body: JSON.stringify({
+            userId: user._id,
+            domain: activeDomain,
+          }),
+        });
 
-    if (savedCompleted.length >= 7) {
-      fetchFullAIReview(activeDomain);
-    } else {
-      setReviewData(null);
-      setError(null);
-      setIsLoading(false);
-    }
-  }, [activeDomain]);
+        const data = await res.json();
 
-  const fetchFullAIReview = async (domainToFetch: string) => {
-    setIsLoading(true);
-    setError(null);
+        if (!res.ok) {
+          if (data.error && data.error.includes("Current completed")) {
+            const match = data.error.match(/Current completed: (\d+)/);
+            const count = match ? parseInt(match[1], 10) : 0;
+            setCompletedDays(Array.from({ length: count }, (_, i) => i + 1));
+          } else {
+            setError(data.error || "Failed to load review.");
+          }
+          setReviewData(null);
+        } else {
+          setCompletedDays([1, 2, 3, 4, 5, 6, 7]);
+          setReviewData(data);
+          setError(null);
+        }
+      } catch (err: any) {
+        console.error("Error fetching review:", err);
+        setError(err.message || "Error loading AI review.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    try {
-      const baseURL = import.meta.env.VITE_API_URL;
-      const res = await fetch(`${baseURL}/api/full-ai-review`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          userId: user?._id,
-          domain: domainToFetch,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to generate comprehensive review.");
-
-      setReviewData(data);
-    } catch (err: any) {
-      setError(err.message || "Error loading AI review.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    fetchReviewAndProgress();
+  }, [activeDomain, user]);
 
   // 1. EMPTY STATE (No active domain)
   if (!isLoading && !activeDomain) {

@@ -44,17 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      // Early check: Agar loggedIn status hi nahi hai toh API call hi mat karo (Prevents 401 in console)
-      const isLoggedIn = localStorage.getItem("isLoggedIn");
-      if (!isLoggedIn) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
       const res = await fetch(`${baseURL}/api/profile`, {
         method: "GET",
-        credentials: "include",
+        credentials: "include", // Cookie/Session Token pass karne ke liye
       });
 
       // Token Expired ya Unauthorized
@@ -73,7 +65,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const profileData: UserProfileData = {
             ...userIdObj,
-            // Fallback strategy: Mongo DB key `user_name` ya `name` handle karega
             name: userIdObj.name || userIdObj.user_name || "User",
             user_name: userIdObj.user_name,
             bio: data.profile.bio,
@@ -82,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
 
           setUser(profileData);
+          localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("jobsim_user", JSON.stringify(profileData));
         }
       } else {
@@ -110,7 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (res.ok) {
-        // Domain update hone ke turant baad latest user state fetch kar lo
         await fetchUserProfile();
       } else {
         console.error("Failed to update domain progress");

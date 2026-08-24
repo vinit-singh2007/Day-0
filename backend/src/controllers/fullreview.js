@@ -1,4 +1,7 @@
-import { Submission } from "../models/submission.js"; // Aapka submission model
+import dotenv from "dotenv";
+dotenv.config();
+
+import { Submission } from "../models/submission.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -7,21 +10,29 @@ export const getFullAIReview = async (req, res) => {
   try {
     const { userId, domain } = req.body;
 
-    // 1. Database se saare 7 days ke submissions fetch karein
-    const submissions = await Submission.find({ userId, domain }).sort({ day: 1 });
+    const submissionDoc = await Submission.findOne({ userId, domain });
 
-    // Guard Clause: Agar 7 days poore nahi hain
-    if (!submissions || submissions.length < 7) {
+    const currentCount = submissionDoc?.responses?.length || 0;
+    if (!submissionDoc || currentCount < 7) {
       return res.status(400).json({
-        error: `Please complete all 7 days before requesting a review. Current completed: ${submissions.length}/7`
+        error: `Please complete all 7 days before requesting a review. Current completed: ${currentCount}/7`
       });
     }
 
-    // 2. AI Prompt ke liye submissions data structure ready karna
-    const formattedSubmissions = submissions.map((sub) => `
+    // 🚀 1. Check karo ki kya review pehle se database me saved hai ya nahi?
+    if (submissionDoc.aiReview && Object.keys(submissionDoc.aiReview).length > 0) {
+      console.log("Serving AI Review from Database Cache (No API Call) ⚡");
+      return res.status(200).json(submissionDoc.aiReview);
+    }
+
+    // 2. Agar saved nahi hai, tabhi Gemini API ko call karo
+    console.log("Generating fresh AI Review from Gemini API...");
+    const sortedResponses = submissionDoc.responses.sort((a, b) => a.day - b.day);
+
+    const formattedSubmissions = sortedResponses.map((sub) => `
       Day ${sub.day}:
       Task: ${sub.taskTitle || "N/A"}
-      User Response: ${sub.userResponse}
+      User Response: ${sub.response}
     `).join("\n\n---\n\n");
 
     const prompt = `
@@ -44,21 +55,22 @@ export const getFullAIReview = async (req, res) => {
             "strengths": ["Strength 1"],
             "improvements": ["Improvement 1"]
           }
-          // repeat for all 7 days
         ]
       }
 
       Return ONLY valid raw JSON. Do not write markdown backticks or extra text.
     `;
 
-    // 3. AI Call
     const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text().trim();
 
-    // Clean JSON response
     const cleanJson = rawResponse.replace(/```json|```/g, "").trim();
     const parsedData = JSON.parse(cleanJson);
+
+    // 💾 3. Generated review ko database me save kar do taaki agli baar API call na ho
+    submissionDoc.aiReview = parsedData;
+    await submissionDoc.save();
 
     return res.status(200).json(parsedData);
 
@@ -67,46 +79,3 @@ export const getFullAIReview = async (req, res) => {
     return res.status(500).json({ error: "Failed to generate comprehensive review." });
   }
 };
-
-// export const getFullAIReview = async (req, res) => {
-//   try {
-//     const { userId, domain } = req.body;
-
-//     // Fast testing response (Dummy Data)
-//     const mockResponse = {
-//       overallScore: 88,
-//       overallSummary: `Candidate has demonstrated strong practical expertise in ${domain || "Software Engineering"}. Throughout the 7-day assessment, they showed consistent problem-solving skills, structured approach to tasks, and high code quality. Minor improvements are needed in performance optimization and edge-case handling.`,
-//       keyQualities: [
-//         "Strong Architectural & Design Thinking",
-//         "Clean & Scalable Code Writing",
-//         "Consistent Task Completion Rate",
-//         "Good Understanding of Core Domain Concepts"
-//       ],
-//       topRecommendations: [
-//         "Focus more on edge-case testing and performance bottlenecks.",
-//         "Implement better error handling for network-level failures.",
-//         "Deepen knowledge in advanced deployment and monitoring strategies."
-//       ],
-//       dailyBreakdown: Array.from({ length: 7 }, (_, index) => ({
-//         day: index + 1,
-//         score: Math.floor(Math.random() * (95 - 75 + 1)) + 75,
-//         feedback: `Day ${index + 1} task was completed successfully. The solution was structured well and fulfilled all primary acceptance criteria.`,
-//         strengths: [
-//           `Clear logic implementation for Day ${index + 1}`,
-//           "Adherence to task guidelines"
-//         ],
-//         improvements: [
-//           "Code structure could be made slightly more modular"
-//         ]
-//       }))
-//     };
-
-//     // Delay simulation (1 second) to feel like real AI processing
-//     setTimeout(() => {
-//       return res.status(200).json(mockResponse);
-//     }, 1000);
-
-//   } catch (error) {
-//     return res.status(500).json({ error: "Failed to load mock evaluation data." });
-//   }
-// };

@@ -126,7 +126,7 @@ function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <a href="/" className="font-display text-xl font-bold tracking-tight uppercase">
-            Day 0
+            Career Forge
           </a>
           <div className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
             <button onClick={()=>{navigate("/login")}} className="hover:text-foreground transition-colors">
@@ -708,7 +708,7 @@ export function Footer() {
         {/* Brand & Socials */}
         <div className="md:col-span-2">
           <span className="font-display text-2xl font-bold tracking-tight uppercase block mb-6">
-            Day 0
+            Career Forge
           </span>
           <p className="text-muted-foreground text-sm max-w-sm mb-8 italic">
             "The shortest distance between ambition and reality is simulation."
@@ -758,7 +758,7 @@ export function Footer() {
 
       {/* Footer Bottom Bar */}
       <div className="relative mx-auto max-w-7xl px-6 mt-20 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} DAY 0 SYSTEMS INC. ALL RIGHTS RESERVED.</p>
+        <p>&copy; {new Date().getFullYear()} Career Forge, SYSTEMS INC. ALL RIGHTS RESERVED.</p>
         <div className="flex gap-8">
           <a href="#" className="hover:text-primary transition-colors">TERMS</a>
           <a href="#" className="hover:text-primary transition-colors">PRIVACY</a>
