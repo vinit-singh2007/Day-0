@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink} from "react-router-dom";
 import {
   LayoutDashboard,
   ListChecks,
@@ -9,10 +9,6 @@ import {
   Settings,
   Zap,
   X,
-  History,
-  Sparkles,
-  User,
-  Diamond,
   Sun,
   HelpCircle,
   MessageSquarePlus,
@@ -43,7 +39,7 @@ interface SidebarContentProps {
 }
 
 const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

@@ -79,7 +79,7 @@ const CARDS: CardData[] = [
 
 export default function LandingPage() {
   const { theme } = useTheme();
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const currentBg = theme === "dark" ? bgDark : bgLight;
 
   return (

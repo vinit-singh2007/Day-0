@@ -1,4 +1,4 @@
-import { Clock, Zap, ChevronRight, ChevronLeft, CheckCircle2, Target as TargetIcon, Database, BarChart3, Layout, Settings, Rocket, Award, Lock, Search, Map, Palette, Smartphone, Play } from 'lucide-react';
+import {  Zap,  Target as TargetIcon, Database, BarChart3, Layout, Settings, Rocket, Award, Lock, Search, Map, Palette, Smartphone, Play } from 'lucide-react';
 
 interface AssessmentItem {
   day: number;

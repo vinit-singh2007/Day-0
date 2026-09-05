@@ -151,7 +151,7 @@ interface handleNavigateSimulation {
 }
 
 
-const Simulations = ({onNavigate}:handleNavigateSimulation) => {
+const Simulations = ({}:handleNavigateSimulation) => {
   const navigate = useNavigate();
 
   const handleStartSimulation = (path: string, comingSoon: boolean) => {

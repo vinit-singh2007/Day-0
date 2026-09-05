@@ -1,4 +1,4 @@
-import React from 'react'
+
 import constructionimg from "../assets/construction.png"
 
 const Underconstruction = () => {
