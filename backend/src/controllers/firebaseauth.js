@@ -214,7 +214,7 @@ const handleFirebaseAuth = async (req, res) => {
     res.cookie("uid", jwtToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
     });
 
