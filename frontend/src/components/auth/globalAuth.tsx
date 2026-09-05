@@ -149,7 +149,7 @@ export const useFirebaseAuth = ({
           setError("Sign-in request is already in progress.");
           break;
         case "auth/popup-blocked":
-          setError("Popup was blocked by your browser. Please allow popups for localhost:5173 from the address bar.");
+          setError("Google sign-in popup was blocked. Please allow popups for this site and try again.");
           break;
         case "auth/unauthorized-domain":
           setError("This domain is not authorized in Firebase Authentication config.");

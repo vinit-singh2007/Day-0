@@ -92,7 +92,7 @@ export default function LandingPage() {
         <img 
           src={currentBg}
           alt="Isometric Background"
-          className="absolute inset-0 w-full h-full object-cover object-top pointer-events-none z-0 brightness-100 dark:brightness-150 contrast-105 transition-all duration-300 "
+          className="absolute inset-0 w-full h-screen object-cover object-top pointer-events-none z-0 brightness-100 dark:brightness-150 contrast-105 transition-all duration-300 "
         />
 
         {/* Dynamic Overlay: Dark mode me 50% dark overlay, Light mode me subtle light/none overlay */}
@@ -229,7 +229,7 @@ export function MovingCardBanner() {
 
   return (
     <div 
-      className="w-full max-w-7xl mx-auto px-6 py-2 relative"
+      className="w-full max-w-7xl mx-auto px-6 py-[-3] relative"
       onMouseEnter={() => setIsHovered(true)}  /* Hover par pause */
       onMouseLeave={() => setIsHovered(false)} /* Mouse hatate hi resume */
     >
@@ -320,7 +320,7 @@ function HeroSection() {
   className="relative overflow-hidden py-12 min-h-[60vh] flex items-center justify-center"
 >
   {/* -mt-12 ya -mt-16 se content upar shift ho jayega */}
-  <div className="relative z-10 mx-auto max-w-4xl px-6 flex flex-col items-center text-center -mt-15 md:mt-10">
+  <div className="relative z-10 mx-auto max-w-4xl px-6 flex flex-col items-center text-center -mt-10 md:mt-6">
     
     {/* Heading */}
     <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-slate-900 dark:text-white leading-[0.95] mb-6 text-balance">

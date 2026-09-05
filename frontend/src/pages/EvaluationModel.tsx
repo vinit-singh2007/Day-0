@@ -165,7 +165,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
                       type="button"
                       onClick={() => {
                         onClose();
-                        navigate('/dashboard/certificate');
+                        navigate('/dashboard/e-certificate?domain');
                       }}
                       className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
                     >
