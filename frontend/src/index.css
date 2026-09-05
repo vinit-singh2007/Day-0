@@ -618,7 +618,7 @@ html, body { background: var(--bg); color: var(--fg); font-family: var(--font-di
 
 /* Background Image Brightness & Opacity Fix */
 :root:not(.dark) .hero-bg {
-  background-image: url('/Light-bg.png') !important;
+  /* background-image: url('/Light-bg.png') !important; */
   background-size: cover;
   background-position: center;
   opacity: 1 !important;           /* Blur/dimming hatane ke liye */

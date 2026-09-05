@@ -1,12 +1,14 @@
-import { useTheme, ThemeToggle } from "@/hooks/use-theme";
+
 import { useNavigate } from "react-router-dom";
 import { FaXTwitter, FaLinkedin, FaGithub } from 'react-icons/fa6';
 import { useEffect, useRef, useState } from "react";
 import bgDark from "../assets/Dark-bg.png"; 
-import bgLight from "../assets/Light-bg.png"
+import bgLight from "../assets/Light-bg.png";
+import simulationTask from "../assets/simulation-task.png"
 
 
 import { ArrowRight, Cpu, Code2, Terminal, ShieldAlert } from 'lucide-react';
+import { ThemeToggle, useTheme } from "@/hooks/use-theme";
 
 interface CardData {
   id: number;
@@ -613,7 +615,7 @@ export function HowItWorksSection() {
           <div className="relative perspective-1000">
             <div className="card-3d aspect-4/5 bg-muted rounded-sm flex items-center justify-center relative overflow-hidden ring-1 ring-border shadow-2xl shadow-primary/10">
               <img
-                src="/src/assets/simulation-task.png"
+                src={simulationTask}
                 alt="A professional working on a laptop in a modern office with a task management interface on screen"
                 width={1008}
                 height={1200}
