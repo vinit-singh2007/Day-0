@@ -645,3 +645,15 @@ html, body { background: var(--bg); color: var(--fg); font-family: var(--font-di
 .animate-marquee {
   animation: marquee 25s linear infinite;
 }
+
+.landing-hero-bg {
+  background-image: url('/Light-bg.png');
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
+/* Jab html/body par 'dark' class hogi, tab yeh dark image lag jayegi */
+.dark .landing-hero-bg {
+  background-image: url('/Dark-bg.png');
+}

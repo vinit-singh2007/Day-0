@@ -1,11 +1,7 @@
-
 import { useNavigate } from "react-router-dom";
 import { FaXTwitter, FaLinkedin, FaGithub } from 'react-icons/fa6';
 import { useEffect, useRef, useState } from "react";
-import bgDark from "../assets/Dark-bg.png"; 
-import bgLight from "../assets/Light-bg.png";
 import simulationTask from "../assets/simulation-task.png"
-
 
 import { ArrowRight, Cpu, Code2, Terminal, ShieldAlert } from 'lucide-react';
 import { ThemeToggle, useTheme } from "@/hooks/use-theme";
@@ -82,27 +78,28 @@ const CARDS: CardData[] = [
 export default function LandingPage() {
   const { theme } = useTheme();
   // const navigate = useNavigate();
-  const currentBg = theme === "dark" ? bgDark : bgLight;
+  
+  // Public folder ke paths direct string mein set kiye hain
+  const currentBg = theme === "dark" ? "/Dark-bg.png" : "/Light-bg.png";
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/15 overflow-x-hidden">
+    <div className="m-h-screen bg-background text-foreground selection:bg-primary/15 overflow-x-hidden">
 
       <div className="relative w-full overflow-hidden">
         {/* Background Image */}
         <img 
           src={currentBg}
           alt="Isometric Background"
-          className="absolute inset-0 w-full h-screen object-cover object-top pointer-events-none z-0 brightness-100 dark:brightness-150 contrast-105 transition-all duration-300 "
+          className="absolute inset-0 w-full h-screen object-cover object-top pointer-events-none z-0 brightness-100 dark:brightness-150 contrast-105 transition-all duration-300"
         />
 
-        {/* Dynamic Overlay: Dark mode me 50% dark overlay, Light mode me subtle light/none overlay */}
+        {/* Dynamic Overlay */}
         <div className="absolute inset-0 bg-black/50 dark:bg-black/60 light:bg-transparent pointer-events-none z-0 hidden dark:block" />
 
         <div className="relative z-10">
           <Navbar />
           <HeroSection /> 
           <MovingCardBanner />
-          
         </div>
       </div>
 
