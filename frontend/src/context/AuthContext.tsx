@@ -12,10 +12,11 @@ export interface DomainAttempt {
 export interface UserProfileData {
   _id?: string;
   name?: string;
+  displayName?: string;
   user_name?: string;
   email?: string;
   githubUsername?: string;
-  provider?: "github" | "email";
+  provider?: "github" | "email" | "google";
   avatarUrl?: string;
   location?: string;
   bio?: string;
@@ -39,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-  // 1. Profile Fetch Logic
+  // 1. Profile Fetch Logic (Fixed with Firebase & MongoDB Fallbacks)
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
@@ -54,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         localStorage.removeItem("isLoggedIn");
         localStorage.removeItem("jobsim_user");
+        localStorage.removeItem("user");
         setLoading(false);
         return;
       }
@@ -61,14 +63,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.profile) {
-          const userIdObj = data.profile.userId || {};
+          // Check ki userId object hai (Populated) ya string hai
+          const userIdObj = typeof data.profile.userId === "object" ? data.profile.userId : {};
+
+          // Backup for login time saved details in localStorage
+          const cachedUser = JSON.parse(
+            localStorage.getItem("user") || localStorage.getItem("jobsim_user") || "{}"
+          );
+
+          // Name Fallback Hierarchy: name -> displayName -> user_name -> cached -> "User"
+          const resolvedName =
+            userIdObj.name ||
+            userIdObj.displayName ||
+            userIdObj.user_name ||
+            data.profile.name ||
+            cachedUser.name ||
+            cachedUser.displayName ||
+            "User";
+
+          // Email Fallback Hierarchy
+          const resolvedEmail =
+            userIdObj.email ||
+            data.profile.email ||
+            cachedUser.email ||
+            "";
+
+          // Avatar Fallback Hierarchy
+          const resolvedAvatar =
+            userIdObj.avatarUrl ||
+            userIdObj.photoURL ||
+            data.profile.avatarUrl ||
+            cachedUser.avatarUrl ||
+            cachedUser.photoURL ||
+            "";
 
           const profileData: UserProfileData = {
             ...userIdObj,
-            name: userIdObj.name || userIdObj.user_name || "User",
-            user_name: userIdObj.user_name,
+            _id: userIdObj._id || data.profile._id || data.profile.userId,
+            name: resolvedName,
+            displayName: resolvedName,
+            email: resolvedEmail,
+            user_name: userIdObj.user_name || userIdObj.displayName || resolvedName,
             bio: data.profile.bio,
-            avatarUrl: data.profile.avatarUrl || userIdObj.avatarUrl,
+            avatarUrl: resolvedAvatar,
             domainsAttempted: data.profile.domainsAttempted || [],
           };
 
@@ -124,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       localStorage.removeItem("isLoggedIn");
       localStorage.removeItem("jobsim_user");
+      localStorage.removeItem("user");
     }
   };
 

@@ -1,6 +1,7 @@
 import "../config/firebaseAdmin.js";
 import { getAuth } from "firebase-admin/auth";
 import User from "../models/user.js";
+import UserProfile from "../models/userProfile.js"; // 👈 Added Profile Model
 import { setUser } from "../services/auth.js";
 
 const handleFirebaseAuth = async (req, res) => {
@@ -23,7 +24,7 @@ const handleFirebaseAuth = async (req, res) => {
     const uid = decodedToken.uid;
     const provider = decodedToken.firebase?.sign_in_provider;
 
-    // 1. EXTENDED EMAIL EXTRACTION FALLBACK
+    // 1. EXTENDED EMAIL & AVATAR EXTRACTION
     let email =
       decodedToken.email ||
       decodedToken.firebase?.identities?.email?.[0] ||
@@ -31,11 +32,17 @@ const handleFirebaseAuth = async (req, res) => {
 
     let userName =
       decodedToken.name ||
+      req.body?.displayName ||
       (email ? email.split("@")[0] : null) ||
       `user_${uid.slice(0, 6)}`;
 
+    let avatarUrl =
+      decodedToken.picture ||
+      req.body?.photoURL ||
+      "";
+
     // ---------------------------------------------------------------
-    // GITHUB SPECIFIC EMAIL FETCHING
+    // GITHUB SPECIFIC EMAIL & PROFILE FETCHING
     // ---------------------------------------------------------------
     if (provider === "github.com") {
       const githubAccessToken = req.body?.githubAccessToken;
@@ -80,31 +87,38 @@ const handleFirebaseAuth = async (req, res) => {
 
       email = selectedEmail.toLowerCase();
 
-      if (!decodedToken.name) {
-        const githubUserResponse = await fetch("https://api.github.com/user", {
-          headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${githubAccessToken}`,
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-        });
+      // Fetch Avatar and Name from GitHub
+      const githubUserResponse = await fetch("https://api.github.com/user", {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${githubAccessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      });
 
-        if (githubUserResponse.ok) {
-          const githubUser = await githubUserResponse.json();
+      if (githubUserResponse.ok) {
+        const githubUser = await githubUserResponse.json();
+        if (!decodedToken.name) {
           userName = githubUser.name || githubUser.login || userName;
+        }
+        if (!avatarUrl) {
+          avatarUrl = githubUser.avatar_url || "";
         }
       }
     }
 
     // ---------------------------------------------------------------
-    // 2. BACKUP FETCH FROM FIREBASE ADMIN IF EMAIL STILL NULL
+    // 2. BACKUP FETCH FROM FIREBASE ADMIN IF DATA IS MISSING
     // ---------------------------------------------------------------
-    if (!email) {
+    if (!email || !avatarUrl) {
       try {
         const userRecord = await getAuth().getUser(uid);
-        email = userRecord.email || userRecord.providerData?.[0]?.email || null;
+        email = email || userRecord.email || userRecord.providerData?.[0]?.email || null;
         if (!userName && userRecord.displayName) {
           userName = userRecord.displayName;
+        }
+        if (!avatarUrl && userRecord.photoURL) {
+          avatarUrl = userRecord.photoURL;
         }
       } catch (adminError) {
         console.error("Firebase Admin getUser Error:", adminError);
@@ -140,11 +154,15 @@ const handleFirebaseAuth = async (req, res) => {
         existingUser.firebaseId = uid;
         if (userName && !userName.startsWith("user_")) {
           existingUser.user_name = userName;
+          existingUser.name = userName;
+        }
+        if (avatarUrl) {
+          existingUser.avatarUrl = avatarUrl;
         }
 
         user = await existingUser.save();
       } else {
-        // Safe creation handling unique username collisions
+        // Safe username collision handling
         let finalUserName = userName;
         const usernameExists = await User.findOne({ user_name: userName });
         if (usernameExists) {
@@ -152,19 +170,40 @@ const handleFirebaseAuth = async (req, res) => {
         }
 
         user = await User.create({
+          name: userName,
           user_name: finalUserName,
           email: email,
           firebaseId: uid,
+          avatarUrl: avatarUrl,
         });
       }
     } else {
       if (userName && !userName.startsWith("user_")) {
         user.user_name = userName;
+        user.name = userName;
       }
       if (email && user.email !== email) {
         user.email = email;
       }
+      if (avatarUrl && user.avatarUrl !== avatarUrl) {
+        user.avatarUrl = avatarUrl;
+      }
       await user.save();
+    }
+
+    // ---------------------------------------------------------------
+    // 3. AUTO-CREATE USER PROFILE (Fixes empty /api/profile response)
+    // ---------------------------------------------------------------
+    let profile = await UserProfile.findOne({ userId: user._id });
+    if (!profile) {
+      profile = await UserProfile.create({
+        userId: user._id,
+        avatarUrl: avatarUrl,
+        domainsAttempted: [],
+      });
+    } else if (avatarUrl && !profile.avatarUrl) {
+      profile.avatarUrl = avatarUrl;
+      await profile.save();
     }
 
     // ---------------------------------------------------------------
@@ -183,9 +222,11 @@ const handleFirebaseAuth = async (req, res) => {
       success: true,
       user: {
         id: user._id,
-        name: user.user_name,
+        _id: user._id,
+        name: user.name || user.user_name,
         user_name: user.user_name,
         email: user.email,
+        avatarUrl: user.avatarUrl || avatarUrl,
       },
     });
   } catch (error) {

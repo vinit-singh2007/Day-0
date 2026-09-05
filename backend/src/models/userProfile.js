@@ -4,14 +4,15 @@ const userProfileSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "User", // ⚠️ DHYAN DEIN: Ye naam bilkul same hona chahiye jo User model me mongoose.model("User", ...) me diya hai
       required: true,
       unique: true,
+      index: true,
     },
 
     bio: {
       type: String,
-      default: "i am a student",
+      default: "I am a student",
     },
 
     avatarUrl: {
@@ -19,7 +20,6 @@ const userProfileSchema = new mongoose.Schema(
       default: "",
     },
 
-    // User ne jitne bhi domains me simulation kiye hain
     domainsAttempted: [
       {
         domainName: {
@@ -50,6 +50,6 @@ const userProfileSchema = new mongoose.Schema(
   }
 );
 
-const UserProfile = mongoose.model("UserProfile", userProfileSchema);
+const UserProfile = mongoose.models.UserProfile || mongoose.model("UserProfile", userProfileSchema);
 
 export default UserProfile;

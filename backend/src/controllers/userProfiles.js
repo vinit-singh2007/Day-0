@@ -1,27 +1,38 @@
 import userProfile from "../models/userProfile.js";
 
+// 1. Get User Profile with Auto-Create & Populate
 export const getUserProfile = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
 
-    // 2. Mongoose Schema ka key name aur local variable name match ho gaya ({ userId })
+    // Profile search karein aur User model se fields populate karein
     let profile = await userProfile
       .findOne({ userId })
       .populate("userId", "user_name name email avatarUrl githubUsername provider location");
 
+    // Agar pehli baar user aaya hai aur profile nahi hai, toh auto-create karein
     if (!profile) {
-      return res.status(404).json({ success: false, message: "Profile not found" });
+      profile = await userProfile.create({
+        userId,
+        domainsAttempted: [],
+      });
+
+      // Populate user info on the newly created profile
+      profile = await userProfile
+        .findById(profile._id)
+        .populate("userId", "user_name name email avatarUrl githubUsername provider location");
     }
 
-    res.status(200).json({ success: true, profile });
+    res.status(200).json({
+      success: true,
+      profile,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-import UserProfile from "../models/userProfile.js";
-
-// 1. Profile Update ya Domain Attempt Add karne ka API
+// 2. Update Domain Attempt with Populated Response
 export const updateDomainAttempt = async (req, res) => {
   try {
     const userId = req.user._id || req.user.id;
@@ -31,33 +42,35 @@ export const updateDomainAttempt = async (req, res) => {
       return res.status(400).json({ success: false, message: "Domain name is required" });
     }
 
-    // User ki profile dhoondho
-    let profile = await UserProfile.findOne({ userId });
+    // User ki profile find karein
+    let profile = await userProfile.findOne({ userId });
 
-    // Agar profile nahi bani hai toh naye tarike se create karo
+    // Agar profile exist nahi karti toh new create karein
     if (!profile) {
-      profile = new UserProfile({
+      profile = new userProfile({
         userId,
         domainsAttempted: [],
       });
     }
 
-    // Check karo kya ye domain pehle se array me hai?
+    // Existing domain check karein
     const existingDomainIndex = profile.domainsAttempted.findIndex(
       (item) => item.domainName.toLowerCase() === domainName.toLowerCase()
     );
 
     if (existingDomainIndex > -1) {
-      // Agar pehle se exist karta hai, toh use UPDATE karo
+      // Existing domain update karein
       profile.domainsAttempted[existingDomainIndex].status = status || "IN_PROGRESS";
-      profile.domainsAttempted[existingDomainIndex].scoreObtained = scoreObtained ?? profile.domainsAttempted[existingDomainIndex].scoreObtained;
-      profile.domainsAttempted[existingDomainIndex].timeSpentInMinutes += timeSpentInMinutes || 0;
-      
+      profile.domainsAttempted[existingDomainIndex].scoreObtained =
+        scoreObtained ?? profile.domainsAttempted[existingDomainIndex].scoreObtained;
+      profile.domainsAttempted[existingDomainIndex].timeSpentInMinutes +=
+        timeSpentInMinutes || 0;
+
       if (status === "COMPLETED") {
         profile.domainsAttempted[existingDomainIndex].completedAt = new Date();
       }
     } else {
-      // Agar naya domain hai, toh NAYA object PUSH karo
+      // Naya domain array me push karein
       profile.domainsAttempted.push({
         domainName,
         status: status || "IN_PROGRESS",
@@ -69,10 +82,15 @@ export const updateDomainAttempt = async (req, res) => {
 
     await profile.save();
 
+    // Updated response ko populate karke return karein taaki frontend UI real-time sync ho sake
+    const updatedProfile = await userProfile
+      .findById(profile._id)
+      .populate("userId", "user_name name email avatarUrl githubUsername provider location");
+
     res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      profile,
+      profile: updatedProfile,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
