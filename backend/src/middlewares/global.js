@@ -4,12 +4,22 @@ import cookieParser from "cookie-parser";
 
 export const configureMiddleware = (app) => {
  
-  app.use(
-    cors({
-      origin: process.env.CLIENT_URL || "http://localhost:5173",
-      credentials: true,
-    })
-  );
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://day-0-delta.vercel.app",
+  "https://day-0-njhqil2aa-axe-vin.vercel.app"
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 
 
   app.use(express.json());
