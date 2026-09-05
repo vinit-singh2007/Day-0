@@ -7,7 +7,7 @@ import UserProfile from '../models/userProfile.js';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  sameSite: "none",
   path: "/",
   maxAge: 24 * 60 * 60 * 1000, // 1 day
 };
@@ -108,7 +108,7 @@ function handleSignout(req, res) {
     res.clearCookie("uid", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       path: "/",
     });
 
