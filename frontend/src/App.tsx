@@ -10,12 +10,10 @@ import { AssessmentPage } from "./pages/SkillAssessment";
 
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/routes/ProtectedRoutes";
-import  { AIReviewPage } from "./pages/AiReview";
+import { AIReviewPage } from "./pages/AiReview";
 import { ECertificate } from "./pages/Ecertificate";
-import { AIInterview } from "./pages/AiInterview";
 
 const App = () => {
-  // LocalStorage se login state parse kar rahe hain
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem("isLoggedIn") === "true";
   });
@@ -51,20 +49,18 @@ const App = () => {
           }
         />
 
-        {/* Protected Routes (Wrapper) */}
+        {/* Protected Routes Wrapper */}
         <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
-          {/* Main Dashboard Layout Wrapper */}
           <Route path="/dashboard" element={<DashboardLayout />}>
-            
-            {/* Main /dashboard Page */}
             <Route index element={<Dashboard />} />
 
-            {/* Sub-Pages (Render inside DashboardLayout's <Outlet />) */}
             <Route path="simulation" element={<Simulation />} />
             <Route path="assessment/:path?" element={<AssessmentPage />} />
             <Route path="e-certificate" element={<ECertificate />} />
-            <Route path="ai-review" element={<AIReviewPage/>} />
-            <Route path="ai-interview" element={<AIInterview/>} />
+            
+            {/* FIX HERE: :path? add kar diya gaya hai */}
+            <Route path="ai-review/:path?" element={<AIReviewPage />} />
+            
             <Route path="other" element={<Underconstruction />} />
           </Route>
         </Route>

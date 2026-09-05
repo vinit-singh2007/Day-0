@@ -52,12 +52,22 @@ export const AssessmentPage: React.FC = () => {
     }
   }, [decodedPath, user?._id]);
 
-  // Sync draft response or submitted response scoped with specific User ID, Domain & Day
+  // Sync draft response OR submitted response when day or domain changes
   useEffect(() => {
     if (user?._id && decodedPath) {
+      const submittedKey = `submitted_day_${user._id}_${decodedPath}_${currentDay}`;
       const draftKey = `draft_day_${user._id}_${decodedPath}_${currentDay}`;
-      const savedDraft = localStorage.getItem(draftKey) || '';
-      setResponse(savedDraft);
+
+      const savedSubmitted = localStorage.getItem(submittedKey);
+      const savedDraft = localStorage.getItem(draftKey);
+
+      if (savedSubmitted) {
+        setResponse(savedSubmitted);
+      } else if (savedDraft) {
+        setResponse(savedDraft);
+      } else {
+        setResponse('');
+      }
     } else {
       setResponse('');
     }
@@ -83,8 +93,32 @@ export const AssessmentPage: React.FC = () => {
     if (currentDay < 7) setCurrentDay(currentDay + 1);
   };
 
- const handleEvaluate = async () => {
-    // Validation check matching backend expectation (min length 10)
+  // Navigate to Certificate with domain saved & passed
+  const handleGetCertificate = () => {
+    if (decodedPath) {
+      localStorage.setItem("active_domain", decodedPath);
+      localStorage.setItem("certificate_domain", decodedPath);
+      navigate(`/dashboard/e-certificate?domain=${encodeURIComponent(decodedPath)}`, {
+        state: { domain: decodedPath }
+      });
+    } else {
+      navigate('/dashboard/e-certificate');
+    }
+  };
+
+  // Navigate to Full AI Review with domain saved & passed
+  const handleGetAIReview = () => {
+    if (decodedPath) {
+      localStorage.setItem("active_domain", decodedPath);
+      navigate(`/dashboard/ai-review?domain=${encodeURIComponent(decodedPath)}`, {
+        state: { domain: decodedPath }
+      });
+    } else {
+      navigate('/dashboard/ai-review');
+    }
+  };
+
+  const handleEvaluate = async () => {
     if (!response || response.trim().length < 10) {
       setEvalError("Please provide a detailed response (at least 10 characters) before submitting.");
       setIsModalOpen(true);
@@ -99,20 +133,18 @@ export const AssessmentPage: React.FC = () => {
     try {
       const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
       
-      // Explicitly construct the payload to ensure userResponse is present
-      const payload: Record<string, any> = {};
-      payload.userId = user?._id ;
-      payload.domainName = decodedPath;
-      payload.domain = decodedPath;
-      payload.day = Number(currentDay);
-      payload.userResponse = String(response); // Explicitly converted to string and mapped
-      payload.taskTitle = currentAssessment?.title || "";
-      payload.dataset = currentAssessment?.dataset || "";
-      payload.scenario = currentAssessment?.scenario || "";
-      payload.task = currentAssessment?.task || "";
-      payload.submission = currentAssessment?.submission || "";
-
-      console.log("FINAL PAYLOAD BEING SENT TO BACKEND:", JSON.stringify(payload, null, 2));
+      const payload: Record<string, any> = {
+        userId: user?._id,
+        domainName: decodedPath,
+        domain: decodedPath,
+        day: Number(currentDay),
+        userResponse: String(response),
+        taskTitle: currentAssessment?.title || "",
+        dataset: currentAssessment?.dataset || "",
+        scenario: currentAssessment?.scenario || "",
+        task: currentAssessment?.task || "",
+        submission: currentAssessment?.submission || "",
+      };
 
       const res = await fetch(`${baseURL}/api/evaluate-assessment`, {
         method: "POST",
@@ -135,10 +167,13 @@ export const AssessmentPage: React.FC = () => {
 
       setEvalData(result);
 
-      // Immediately update local states & save to localStorage
-      const updatedCompleted = [...new Set([...completedDays, Number(currentDay)])];
-      setCompletedDays(updatedCompleted);
+      // Save submission permanently in local storage
       if (user?._id && decodedPath) {
+        const submittedKey = `submitted_day_${user._id}_${decodedPath}_${currentDay}`;
+        localStorage.setItem(submittedKey, response);
+
+        const updatedCompleted = [...new Set([...completedDays, Number(currentDay)])];
+        setCompletedDays(updatedCompleted);
         localStorage.setItem(`completed_days_${user._id}_${decodedPath}`, JSON.stringify(updatedCompleted));
       }
 
@@ -327,7 +362,7 @@ export const AssessmentPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard/e-certificate')}
+                  onClick={handleGetCertificate}
                   className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   <Award className="w-5 h-5" />
@@ -336,7 +371,7 @@ export const AssessmentPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/dashboard/ai-review')}
+                  onClick={handleGetAIReview}
                   className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   <FileText className="w-5 h-5" />

@@ -35,8 +35,8 @@ const Navbar = ({ onMenuClick, onNavigate }: NavbarProps) => {
 
   // Dummy notifications list (Replace with dynamic notifications from API/Context as needed)
   const notifications = [
-    { id: 1, title: "Simulation Updated", time: "2m ago", read: false },
-    { id: 2, title: "New Task Assigned", time: "1h ago", read: false },
+    { id: 1, title: "Welcome 2 Day 0", msg:"Continue Doing Work", read: false },
+    // { id: 2, title: "New Task Assigned", time: "1h ago", read: false },
     // { id: 3, title: "Welcome to JobSim!", time: "1d ago", read: true },
   ];
 
@@ -167,7 +167,7 @@ const Navbar = ({ onMenuClick, onNavigate }: NavbarProps) => {
                       <p className={`text-xs ${item.read ? "text-slate-600 dark:text-slate-400" : "font-semibold text-slate-900 dark:text-slate-100"}`}>
                         {item.title}
                       </p>
-                      <span className="text-[10px] text-slate-400">{item.time}</span>
+                      <span className="text-[10px] text-slate-400">{item.msg}</span>
                     </div>
                     {!item.read && <span className="h-2 w-2 rounded-full bg-indigo-600 mt-1 shrink-0" />}
                   </div>

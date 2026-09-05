@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Award, ArrowLeft, AlertTriangle, ArrowRight, Printer, ShieldCheck, Sparkles } from 'lucide-react';
+import { Award, ArrowLeft, AlertTriangle, ArrowRight, Printer, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const ECertificate: React.FC = () => {
@@ -8,58 +8,93 @@ export const ECertificate: React.FC = () => {
   const { user } = useAuth();
   const certificateRef = useRef<HTMLDivElement>(null);
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userDomains, setUserDomains] = useState<string[]>([]);
   const [activeDomain, setActiveDomain] = useState<string>('');
   const [completedDaysCount, setCompletedDaysCount] = useState<number>(0);
   const [issueDate, setIssueDate] = useState<string>('');
   const [certificateId, setCertificateId] = useState<string>('');
 
-  useEffect(() => {
-    // 1. LocalStorage se unhi domains ko nikalo jiske 7 days complete hain (scoped for user if needed, or global keys)
-    const allKeys = Object.keys(localStorage);
-    const completedDomainKeys = allKeys.filter(key => key.startsWith("completed_days_"));
+  // Helper function: Get completed days count for a specific domain
+  const getCompletedDays = (domainName: string): number => {
+    if (!domainName) return 0;
     
-    // Sirf wahi domains filter karo jinme poore 7 days finished hain
-    const fullyCompletedDomains = completedDomainKeys.filter(key => {
-      const days = JSON.parse(localStorage.getItem(key) || "[]");
-      return days.length >= 7;
-    }).map(key => {
-      // Key format: completed_days_userId_domain or completed_days_domain
-      // Let's handle both or extract domain cleanly
-      const parts = key.replace("completed_days_", "");
-      // If user-scoped like completed_days_6a8c3..._Web Developer
-      const underscoreIndex = parts.indexOf('_');
-      if (underscoreIndex !== -1 && user?._id && parts.startsWith(user._id)) {
-        return parts.substring(user._id.length + 1);
+    let days: string[] = [];
+    if (user?._id) {
+      const rawUserDays = localStorage.getItem(`completed_days_${user._id}_${domainName}`);
+      if (rawUserDays) {
+        try {
+          days = JSON.parse(rawUserDays);
+        } catch {
+          days = [];
+        }
       }
-      return parts;
+    } else {
+      const rawDays = localStorage.getItem(`completed_days_${domainName}`);
+      if (rawDays) {
+        try {
+          days = JSON.parse(rawDays);
+        } catch {
+          days = [];
+        }
+      }
+    }
+    
+    return Array.isArray(days) ? days.length : 0;
+  };
+
+  useEffect(() => {
+    setIsLoading(true);
+
+    const storedActiveDomain = localStorage.getItem("active_domain") || "";
+    const allKeys = Object.keys(localStorage);
+    
+    // Strict prefix for current logged-in user
+    const userPrefix = user?._id ? `completed_days_${user._id}_` : `completed_days_`;
+    
+    // Filter domains that actually belong to this user and have >= 7 completed days
+    const completedDomainKeys = allKeys.filter(key => key.startsWith(userPrefix));
+
+    const fullyCompletedDomains: string[] = [];
+
+    completedDomainKeys.forEach(key => {
+      try {
+        const days = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(days) && days.length >= 7) {
+          const domainName = key.replace(userPrefix, "");
+          if (domainName && domainName.trim() !== "") {
+            fullyCompletedDomains.push(domainName);
+          }
+        }
+      } catch {
+        // ignore parse error
+      }
     });
 
-    // Unique domains list
     const uniqueDomains = Array.from(new Set(fullyCompletedDomains));
     setUserDomains(uniqueDomains);
 
-    // Current Active Domain Check
-    const storedActiveDomain = localStorage.getItem("active_domain");
-    let currentActive = storedActiveDomain || (uniqueDomains.length > 0 ? uniqueDomains[0] : "");
+    // Pick active domain ONLY IF it is part of completed domains or stored active domain
+    let currentActive = "";
+    if (storedActiveDomain && uniqueDomains.includes(storedActiveDomain)) {
+      currentActive = storedActiveDomain;
+    } else if (uniqueDomains.length > 0) {
+      currentActive = uniqueDomains[0];
+    } else if (storedActiveDomain) {
+      // User selected domain, but hasn't completed 7 days
+      currentActive = storedActiveDomain;
+    }
+
     setActiveDomain(currentActive);
 
-    // Selected domain ke exact completed days count read karo
     if (currentActive) {
-      // Check both user-scoped or standard storage keys
-      let activeDays = [];
-      if (user?._id) {
-        activeDays = JSON.parse(localStorage.getItem(`completed_days_${user._id}_${currentActive}`) || "[]");
-      }
-      if (activeDays.length === 0) {
-        activeDays = JSON.parse(localStorage.getItem(`completed_days_${currentActive}`) || "[]");
-      }
-      setCompletedDaysCount(activeDays.length);
+      const daysCount = getCompletedDays(currentActive);
+      setCompletedDaysCount(daysCount);
     } else {
       setCompletedDaysCount(0);
     }
 
-    // Meta details
+    // Certificate metadata
     const today = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -69,27 +104,34 @@ export const ECertificate: React.FC = () => {
 
     const randomId = 'CF-CERT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
     setCertificateId(randomId);
+
+    setIsLoading(false);
   }, [user?._id]);
 
   const handleDomainChange = (domain: string) => {
     setActiveDomain(domain);
     localStorage.setItem("active_domain", domain);
-    
-    let activeDays = [];
-    if (user?._id) {
-      activeDays = JSON.parse(localStorage.getItem(`completed_days_${user._id}_${domain}`) || "[]");
-    }
-    if (activeDays.length === 0) {
-      activeDays = JSON.parse(localStorage.getItem(`completed_days_${domain}`) || "[]");
-    }
-    setCompletedDaysCount(activeDays.length);
+    const daysCount = getCompletedDays(domain);
+    setCompletedDaysCount(daysCount);
   };
 
   const handlePrint = () => {
     window.print();
   };
 
-  // 🔒 STRICT GUARD CLAUSE: Agar selected domain completed nahi hai (less than 7 days)
+  // 1. Loading State
+  if (isLoading) {
+    return (
+      <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B0D1B]">
+        <div className="flex flex-col items-center gap-3 text-slate-500 dark:text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <p className="text-sm font-semibold">Verifying completion status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Strict Locked View: Triggered if no domain is selected OR completed days are less than 7
   if (!activeDomain || completedDaysCount < 7) {
     return (
       <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B0D1B]">
@@ -102,7 +144,7 @@ export const ECertificate: React.FC = () => {
               E-Certificate Locked
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              CareerForge certificate unlock karne ke liye aapko <strong className="text-blue-500">{activeDomain || "Selected Domain"}</strong> ke saare 7-day assessment tasks complete karne honge. <br />
+              To unlock your CareerForge certificate, you must complete all 7-day assessment tasks for <strong className="text-blue-500">{activeDomain || "Selected Domain"}</strong>. <br />
               Current Progress: <b>{completedDaysCount}/7 days</b>
             </p>
           </div>
@@ -111,7 +153,7 @@ export const ECertificate: React.FC = () => {
             onClick={() => navigate(activeDomain ? `/dashboard/assessment/${encodeURIComponent(activeDomain)}` : '/dashboard/simulation')}
             className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
-            Complete Simulation Tasks
+            Complete Assessment Tasks
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -119,6 +161,7 @@ export const ECertificate: React.FC = () => {
     );
   }
 
+  // 3. Unlocked Certificate View
   return (
     <div className="min-h-screen w-full p-6 md:p-10 space-y-8 bg-slate-50 text-slate-900 dark:bg-[#0B0D1B] dark:text-slate-100 transition-colors duration-200">
       
@@ -146,7 +189,7 @@ export const ECertificate: React.FC = () => {
         </button>
       </div>
 
-      {/* Completed Domains Switcher */}
+      {/* Unlocked Domains Switcher */}
       {userDomains.length > 1 && (
         <div className="print:hidden flex items-center gap-3 overflow-x-auto pb-2 border-b border-slate-200 dark:border-blue-900/30">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2">Unlocked Certificates:</span>
@@ -166,7 +209,7 @@ export const ECertificate: React.FC = () => {
         </div>
       )}
 
-      {/* CERTIFICATE DISPLAY */}
+      {/* Certificate Container */}
       <div className="flex justify-center items-center py-4">
         <div 
           ref={certificateRef}
@@ -176,7 +219,7 @@ export const ECertificate: React.FC = () => {
           <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
           <div className="absolute inset-3 border border-slate-200 dark:border-blue-800/30 rounded-2xl pointer-events-none" />
 
-          {/* Certificate Content */}
+          {/* Certificate Content Header */}
           <div className="flex justify-between items-center relative z-10">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-2xl bg-blue-600/10 border border-blue-500/20 text-blue-500">
@@ -184,7 +227,7 @@ export const ECertificate: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-black tracking-wider text-lg uppercase text-blue-600 dark:text-blue-400">
-                  CareerForge
+                  Day 0
                 </h3>
                 <p className="text-[10px] text-slate-400 tracking-widest uppercase">Verified Simulation Credential</p>
               </div>
@@ -196,6 +239,7 @@ export const ECertificate: React.FC = () => {
             </div>
           </div>
 
+          {/* Certificate Body */}
           <div className="text-center space-y-6 my-auto relative z-10 py-6">
             <h2 className="text-xs uppercase font-extrabold tracking-[0.3em] text-slate-400">
               Certificate of Completion
@@ -214,19 +258,20 @@ export const ECertificate: React.FC = () => {
               <span className="inline-block mx-1.5 px-3 py-1 rounded-lg bg-blue-50 dark:bg-[#1B1E36] border dark:border-blue-900/50 font-bold text-blue-600 dark:text-blue-400">
                 {activeDomain}
               </span> 
-              via CareerForge, demonstrating professional proficiency and problem-solving excellence.
+              via Day 0, demonstrating professional proficiency and problem-solving excellence.
             </p>
           </div>
 
+          {/* Certificate Footer */}
           <div className="flex justify-between items-end border-t border-slate-100 dark:border-blue-900/30 pt-6 relative z-10">
             <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-2 rounded-xl text-xs font-bold">
               <ShieldCheck className="w-4 h-4" />
-              CareerForge Authenticated
+              Day 0 Authenticated
             </div>
 
             <div className="text-center">
               <div className="font-serif italic text-lg text-slate-700 dark:text-slate-300 border-b border-slate-300 dark:border-slate-700 px-4 pb-1">
-                CareerForge Evaluator
+                Day 0 Evaluator
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1 block">
                 Authorized Signature

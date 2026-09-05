@@ -126,7 +126,7 @@ function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <a href="/" className="font-display text-xl font-bold tracking-tight uppercase">
-            Career Forge
+            Day 0
           </a>
           <div className="hidden md:flex gap-6 text-sm font-medium text-muted-foreground">
             <button onClick={()=>{navigate("/login")}} className="hover:text-foreground transition-colors">
@@ -613,7 +613,7 @@ export function HowItWorksSection() {
           <div className="relative perspective-1000">
             <div className="card-3d aspect-4/5 bg-muted rounded-sm flex items-center justify-center relative overflow-hidden ring-1 ring-border shadow-2xl shadow-primary/10">
               <img
-                src="/src/assets/simulation-task.jpg"
+                src="/src/assets/simulation-task.png"
                 alt="A professional working on a laptop in a modern office with a task management interface on screen"
                 width={1008}
                 height={1200}
@@ -708,7 +708,7 @@ export function Footer() {
         {/* Brand & Socials */}
         <div className="md:col-span-2">
           <span className="font-display text-2xl font-bold tracking-tight uppercase block mb-6">
-            Career Forge
+            Day 0
           </span>
           <p className="text-muted-foreground text-sm max-w-sm mb-8 italic">
             "The shortest distance between ambition and reality is simulation."
@@ -737,9 +737,9 @@ export function Footer() {
             Product
           </h5>
           <ul className="space-y-4 text-sm">
-            <li><a href="#" className="hover:text-primary transition-colors">Curriculum</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Simulation Engine</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Mentorship</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Curriculum</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Simulation Engine</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Mentorship</a></li>
           </ul>
         </div>
 
@@ -749,20 +749,20 @@ export function Footer() {
             Company
           </h5>
           <ul className="space-y-4 text-sm">
-            <li><a href="#" className="hover:text-primary transition-colors">Manifesto</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Careers</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Manifesto</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Careers</a></li>
+            <li><a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">Contact</a></li>
           </ul>
         </div>
       </div>
 
       {/* Footer Bottom Bar */}
       <div className="relative mx-auto max-w-7xl px-6 mt-20 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Career Forge, SYSTEMS INC. ALL RIGHTS RESERVED.</p>
+        <p>&copy; {new Date().getFullYear()} DAY 0, SYSTEMS INC. ALL RIGHTS RESERVED.</p>
         <div className="flex gap-8">
-          <a href="#" className="hover:text-primary transition-colors">TERMS</a>
-          <a href="#" className="hover:text-primary transition-colors">PRIVACY</a>
-          <a href="#" className="hover:text-primary transition-colors">COOKIE POLICY</a>
+          <a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">TERMS</a>
+          <a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">PRIVACY</a>
+          <a href="https://doc-hosting.flycricket.io/day-0/18bed8e9-77fd-4fca-8964-99b1fe5c5e2a/other" className="hover:text-primary transition-colors">COOKIE POLICY</a>
         </div>
       </div>
     </footer>

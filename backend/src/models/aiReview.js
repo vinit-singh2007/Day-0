@@ -7,7 +7,6 @@ const aiReviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-
     domainName: {
       type: String,
       required: true,
@@ -15,72 +14,25 @@ const aiReviewSchema = new mongoose.Schema(
 
     // Skill breakdown scores (0 - 100)
     skillScore: {
-      technicalScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        required: true,
-      },
-      problemSolvingScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        required: true,
-      },
-      communicationScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        required: true,
-      },
-      overallScore: {
-        type: Number,
-        min: 0,
-        max: 100,
-        required: true,
-      },
+      technicalScore: { type: Number, min: 0, max: 100, required: true },
+      problemSolvingScore: { type: Number, min: 0, max: 100, required: true },
+      communicationScore: { type: Number, min: 0, max: 100, required: true },
+      overallScore: { type: Number, min: 0, max: 100, required: true },
     },
 
-    // AI Predicted Salary
+    // Salary Prediction (ONLY calculated on Final AI Review)
     salaryPrediction: {
-      minSalary: {
-        type: Number,
-        required: true,
-      },
-      maxSalary: {
-        type: Number,
-        required: true,
-      },
-      currency: {
-        type: String,
-        default: "INR",
-      },
+      minSalary: { type: Number, required: true },
+      maxSalary: { type: Number, required: true },
+      currency: { type: String, default: "INR" },
     },
 
-    // Recommendations & Feedback lists
-    aiSuggestions: [
-      {
-        type: String,
-      },
-    ],
-
-    strengths: [
-      {
-        type: String,
-      },
-    ],
-
-    weaknesses: [
-      {
-        type: String,
-      },
-    ],
+    aiSuggestions: [{ type: String }],
+    strengths: [{ type: String }],
+    weaknesses: [{ type: String }],
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 const AIReview = mongoose.model("AIReview", aiReviewSchema);
-
 export default AIReview;

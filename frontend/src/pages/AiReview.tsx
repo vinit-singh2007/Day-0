@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Award, Zap, CheckCircle, TrendingUp, AlertTriangle, ArrowRight, ArrowLeft, Loader2, Sparkles, Compass } from 'lucide-react';
+import { Award, Zap, CheckCircle, TrendingUp, AlertTriangle, ArrowRight, ArrowLeft, Loader2, Sparkles, Compass, Layers } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface DayReview {
@@ -31,26 +31,70 @@ export const AIReviewPage: React.FC = () => {
   const [reviewData, setReviewData] = useState<FullReviewData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const allKeys = Object.keys(localStorage);
-    const completedDomainKeys = allKeys.filter(key => key.startsWith("completed_days_"));
-    const domains = completedDomainKeys.map(key => key.replace("completed_days_", ""));
+  const sanitizeDomainName = (domainStr: string): string => {
+    if (!domainStr) return '';
+    let clean = domainStr;
     
-    setUserDomains(domains);
+    if (clean.includes("completed_days_")) {
+      clean = clean.replace("completed_days_", "");
+    }
 
-    const initialDomain = path 
-      ? decodeURIComponent(path) 
-      : localStorage.getItem("active_domain") || (domains.length > 0 ? domains[0] : "");
+    const currentUserId = user?._id;
+
+    if (clean.includes('_')) {
+      const parts = clean.split('_');
+      if (parts[0].length === 24 || (currentUserId && parts[0] === currentUserId)) {
+        clean = parts.slice(1).join('_');
+      }
+    }
+    return clean;
+  };
+
+  useEffect(() => {
+    if (!user?._id) return;
+
+    const userId = user._id;
+    const allKeys = Object.keys(localStorage);
     
-    setActiveDomain(initialDomain);
-    
-    if (!initialDomain) {
+    const userDomainKeys = allKeys.filter(key => key.startsWith("completed_days_"));
+    const completedDomains: string[] = [];
+
+    userDomainKeys.forEach(key => {
+      try {
+        const savedDays = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(savedDays) && savedDays.length > 0) {
+          let domainName = key.replace("completed_days_", "");
+          if (userId && domainName.startsWith(`${userId}_`)) {
+            domainName = domainName.substring(userId.length + 1);
+          }
+          const cleanDom = sanitizeDomainName(domainName);
+          if (cleanDom && !completedDomains.includes(cleanDom)) {
+            completedDomains.push(cleanDom);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing completed days:", e);
+      }
+    });
+
+    setUserDomains(completedDomains);
+
+    const urlDomain = path ? sanitizeDomainName(decodeURIComponent(path)) : "";
+    const activeLocalStorageDomain = sanitizeDomainName(localStorage.getItem("active_domain") || "");
+
+    const selectedDomain = urlDomain || activeLocalStorageDomain || "";
+    setActiveDomain(selectedDomain);
+
+    if (!selectedDomain) {
       setIsLoading(false);
     }
-  }, [path]);
+  }, [path, user?._id]);
 
   useEffect(() => {
-    if (!activeDomain || !user?._id) {
+    const cleanDomain = sanitizeDomainName(activeDomain);
+
+    // Safeguard against calling API with missing parameters (Prevents 400 Bad Request)
+    if (!cleanDomain || !user?._id) {
       setIsLoading(false);
       return;
     }
@@ -58,18 +102,18 @@ export const AIReviewPage: React.FC = () => {
     const fetchReviewAndProgress = async () => {
       try {
         setIsLoading(true);
-        const baseURL = import.meta.env.VITE_API_URL;
+        setError(null);
+        const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
         
-        // 🚀 Cookie-based authentication ke liye credentials: "include" use kiya gaya hai
         const res = await fetch(`${baseURL}/api/full-ai-review`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: "include", // 👈 Ye zaroori hai cookie pass karne ke liye
+          credentials: "include", 
           body: JSON.stringify({
             userId: user._id,
-            domain: activeDomain,
+            domain: cleanDomain,
           }),
         });
 
@@ -98,10 +142,18 @@ export const AIReviewPage: React.FC = () => {
     };
 
     fetchReviewAndProgress();
-  }, [activeDomain, user]);
+  }, [activeDomain, user?._id]);
 
-  // 1. EMPTY STATE (No active domain)
-  if (!isLoading && !activeDomain) {
+  const handleDomainChange = (newDomain: string) => {
+    const cleanDomain = sanitizeDomainName(newDomain);
+    setActiveDomain(cleanDomain);
+    localStorage.setItem("active_domain", cleanDomain);
+    navigate(`/dashboard/ai-review/${encodeURIComponent(cleanDomain)}`);
+  };
+
+  const displayDomain = sanitizeDomainName(activeDomain);
+
+  if (!isLoading && !displayDomain) {
     return (
       <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B0D1B]">
         <div className="max-w-md w-full border rounded-3xl p-8 text-center space-y-6 bg-white dark:bg-[#131629] border-slate-200 dark:border-blue-900/40 shadow-xl">
@@ -113,7 +165,7 @@ export const AIReviewPage: React.FC = () => {
               No Domain Enrolled
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Aapne abhi tak koi simulation start nahi kiya hai. Pehle domain page par jaakar apna simulation choose karein.
+              You haven't started any simulation yet. Please select a domain from the simulation page to begin.
             </p>
           </div>
           <button
@@ -129,7 +181,6 @@ export const AIReviewPage: React.FC = () => {
     );
   }
 
-  // 2. INCOMPLETE STATE (< 7 Days)
   if (!isLoading && completedDays.length < 7) {
     return (
       <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50 dark:bg-[#0B0D1B]">
@@ -142,15 +193,36 @@ export const AIReviewPage: React.FC = () => {
               Simulation Incomplete
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              <strong className="text-blue-500">{activeDomain}</strong> ka full AI review unlock karne ke liye saare 7 days complete karein.
+              Complete all 7 days of the {displayDomain ? <strong className="text-blue-500">{displayDomain} </strong> : ''}simulation to unlock your full AI performance review.
             </p>
             <div className="pt-2 text-xs font-bold text-amber-500 uppercase tracking-wider">
               Current Progress: {completedDays.length} / 7 Days
             </div>
           </div>
+
+          {userDomains.length > 0 && (
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-xs font-semibold text-slate-500 mb-2 block">
+                Switch to a completed domain:
+              </label>
+              <select
+                value={displayDomain}
+                onChange={(e) => handleDomainChange(e.target.value)}
+                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-semibold"
+              >
+                {!userDomains.includes(displayDomain) && displayDomain && (
+                  <option value={displayDomain}>{displayDomain} (In Progress)</option>
+                )}
+                {userDomains.map(dom => (
+                  <option key={dom} value={dom}>{dom}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             type="button"
-            onClick={() => navigate(`/dashboard/assessment/${encodeURIComponent(activeDomain)}`)}
+            onClick={() => navigate(displayDomain ? `/dashboard/assessment/${encodeURIComponent(displayDomain)}` : '/dashboard/simulation')}
             className="w-full py-3.5 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             Continue Simulation
@@ -161,7 +233,6 @@ export const AIReviewPage: React.FC = () => {
     );
   }
 
-  // 3. LOADING STATE
   if (isLoading) {
     return (
       <div className="min-h-[85vh] w-full flex flex-col items-center justify-center space-y-4 bg-slate-50 dark:bg-[#0B0D1B]">
@@ -173,7 +244,6 @@ export const AIReviewPage: React.FC = () => {
     );
   }
 
-  // 4. COMPLETED STATE (Full Review Content)
   return (
     <div className="min-h-screen w-full p-6 md:p-10 space-y-8 bg-slate-50 text-slate-900 dark:bg-[#0B0D1B] dark:text-slate-100 transition-colors duration-200">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-blue-900/30 pb-6">
@@ -189,17 +259,36 @@ export const AIReviewPage: React.FC = () => {
             AI Performance Review
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Domain: <strong className="text-blue-500 dark:text-blue-400">{activeDomain}</strong>
+            Viewing evaluation for selected domain
           </p>
         </div>
 
-        <button
-          onClick={() => navigate('/dashboard/e-certificate')}
-          className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-95"
-        >
-          <Award className="w-5 h-5" />
-          Claim E-Certificate
-        </button>
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto justify-end">
+          {userDomains.length > 0 && (
+            <div className="flex items-center gap-2 bg-white dark:bg-[#131629] border border-slate-200 dark:border-blue-900/40 px-3 py-1.5 rounded-2xl shadow-sm">
+              <Layers className="w-4 h-4 text-blue-500" />
+              <select
+                value={displayDomain}
+                onChange={(e) => handleDomainChange(e.target.value)}
+                className="bg-transparent text-sm font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-2"
+              >
+                {userDomains.map((dom) => (
+                  <option key={dom} value={dom} className="dark:bg-[#131629] text-slate-900 dark:text-white">
+                    {dom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={() => navigate('/dashboard/e-certificate')}
+            className="px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-95"
+          >
+            <Award className="w-5 h-5" />
+            Claim E-Certificate
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -213,7 +302,7 @@ export const AIReviewPage: React.FC = () => {
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 border-b border-slate-100 dark:border-blue-900/20 pb-6">
                 <div>
                   <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
-                    Final Assessment Result
+                    {displayDomain ? `${displayDomain} - ` : ''}Final Assessment
                   </span>
                   <h2 className="text-3xl font-black text-slate-900 dark:text-white mt-3">
                     Overall Summary & Score
@@ -265,7 +354,7 @@ export const AIReviewPage: React.FC = () => {
             <div className="space-y-4">
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Zap className="w-6 h-6 text-amber-500" />
-                Day-by-Day Evaluation Breakdown
+                Day-by-Day Evaluation Breakdown {displayDomain ? `(${displayDomain})` : ''}
               </h3>
 
               <div className="grid grid-cols-1 gap-4">

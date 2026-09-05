@@ -27,7 +27,7 @@ const nav = [
   { label: "Skill Assessment", icon: ListChecks, path: "/dashboard/assessment" },
   { label: "AI Review", icon: FileText, path: "/dashboard/ai-review" },
   { label: "E-Certificate", icon: Award, path: "/dashboard/e-certificate" },
-  { label: "AI Interview", icon: Bot, path: "/dashboard/ai-interview" },
+  { label: "AI Interview", icon: Bot, path: "/dashboard/other",isPremium: true  },
   { 
     label: "Human Interview", 
     icon: UserCheck, 
@@ -36,11 +36,7 @@ const nav = [
   },
 ];
 
-// const cohort = [
-//   { name: "Aarav Mehta", role: "PM Path", initials: "AM" },
-//   { name: "Sara Lin", role: "Data Path", initials: "SL" },
-//   { name: "Noah Ade", role: "Design Path", initials: "NA" },
-// ];
+
 
 interface SidebarContentProps {
   onNavigate?: () => void;
@@ -70,11 +66,11 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
         onClick={onNavigate}
       >
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary font-display text-sm font-bold text-primary-foreground">
-          CF
+          D
         </span>
 
         <span className="font-display text-lg font-bold tracking-tight">
-          Career Forge
+          Day 0
         </span>
       </NavLink>
 
@@ -110,40 +106,14 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
         ))}
       </nav>
 
-      {/* <p className="label-mono px-2 pb-3 pt-8 text-muted-foreground">
-        Cohort
-      </p> */}
-
-      {/* <ul className="flex flex-col gap-3 px-2">
-        {cohort.map((person) => (
-          <li
-            key={person.name}
-            className="flex min-w-0 items-center gap-3"
-          >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground">
-              {person.initials}
-            </span>
-
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">
-                {person.name}
-              </span>
-
-              <span className="label-mono block text-muted-foreground">
-                {person.role}
-              </span>
-            </span>
-          </li>
-        ))}
-      </ul> */}
-
+    
       <div className="mt-auto flex flex-col gap-1 pt-8">
         <div className="relative" ref={menuRef}>
           {/* FLOATING CARD */}
           {isOpen && (
             <div className="absolute bottom-12 left-0 right-0 z-50 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-150">
               <div className="flex flex-col gap-0.5">
-                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                {/* <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
                   <History className="h-4 w-4 text-muted-foreground" />
                   <span>Activity</span>
                 </button>
@@ -161,7 +131,7 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
                 <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
                   <Diamond className="h-4 w-4 text-muted-foreground" />
                   <span>Gems</span>
-                </button>
+                </button> */}
 
                 <div className="my-1 h-[1px] bg-border" />
 
@@ -176,12 +146,18 @@ const SidebarContent = ({ onNavigate }: SidebarContentProps) => {
 
                 <div className="my-1 h-[1px] bg-border" />
 
-                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                <a 
+                  href="mailto:rajputvinitsingh2007@gmail.com?subject=Need%20Help%20with%20Dashboard" 
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                >
                   <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  <span>Help</span>
-                </button>
+                  <span>Help & Support</span>
+                </a>
 
-                <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left">
+                <button 
+                  onClick={() => window.open('https://axevin-ixyhk8vv8-axe-vin.vercel.app/', '_blank')} 
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors text-left"
+                >
                   <MessageSquarePlus className="h-4 w-4 text-muted-foreground" />
                   <span>Send feedback</span>
                 </button>

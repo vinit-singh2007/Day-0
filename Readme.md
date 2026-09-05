@@ -41,7 +41,4 @@ DAY 0/
     │   └── routes/        # Frontend routing
     └── vite.config.ts
 
-git status
-git add .
-git commit -m "your update message"
-git push
+

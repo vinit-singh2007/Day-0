@@ -1,5 +1,4 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import AIReview from "../models/aiReview.js";
 import { Submission } from "../models/submission.js";
 import NodeCache from "node-cache";
 
@@ -30,7 +29,7 @@ export const getUserProgress = async (req, res) => {
   }
 };
 
-// 2. 🛠️ UPDATED: Assessment evaluate karne aur DB me Save karne ka handler (with Caching & Rate-Limit Handling)
+// 2. 🛠️ Daily Assessment evaluate karne aur DB me Save karne ka handler
 export const handleAssesment = async (req, res) => {
   try {
     const userId = req.user?._id || req.body.userId;
@@ -57,8 +56,7 @@ export const handleAssesment = async (req, res) => {
       console.log("⚡ Serving assessment evaluation from cache...");
       const cachedData = assessmentCache.get(cacheKey);
       
-      // Even if cached, ensure DB tracks the submission if it wasn't recorded before
-     const updatedSubmission = await Submission.findOneAndUpdate(
+      const updatedSubmission = await Submission.findOneAndUpdate(
         { userId, domain },
         {
           $addToSet: { completedDays: Number(day) },
@@ -69,18 +67,17 @@ export const handleAssesment = async (req, res) => {
               taskTitle: taskTitle,
               evaluation: cachedData.parsedData,
               submittedAt: new Date(),
+            },
           },
         },
-      },
-      { upsert: true, returnDocument: 'after' } 
-  );
+        { upsert: true, returnDocument: 'after' } 
+      );
 
       return res.status(200).json({
         score: cachedData.parsedData.skillScore.overallScore,
         feedback: cachedData.parsedData.aiSuggestions.join(" "),
         strengths: cachedData.parsedData.strengths,
         improvements: cachedData.parsedData.weaknesses,
-        reviewId: cachedData.reviewId,
         completedDays: updatedSubmission.completedDays,
         source: "cache"
       });
@@ -104,7 +101,7 @@ export const handleAssesment = async (req, res) => {
 
       --- INSTRUCTIONS ---
       Evaluate technical competency, problem-solving skills, and communication quality.
-      Provide realistic entry-to-mid level salary predictions in INR based on their solution quality.
+      Do NOT provide salary estimations for individual daily submissions.
     `;
 
     let response;
@@ -132,15 +129,6 @@ export const handleAssesment = async (req, res) => {
                   },
                   required: ["technicalScore", "problemSolvingScore", "communicationScore", "overallScore"],
                 },
-                salaryPrediction: {
-                  type: Type.OBJECT,
-                  properties: {
-                    minSalary: { type: Type.INTEGER },
-                    maxSalary: { type: Type.INTEGER },
-                    currency: { type: Type.STRING },
-                  },
-                  required: ["minSalary", "maxSalary", "currency"],
-                },
                 aiSuggestions: {
                   type: Type.ARRAY,
                   items: { type: Type.STRING },
@@ -154,7 +142,7 @@ export const handleAssesment = async (req, res) => {
                   items: { type: Type.STRING },
                 },
               },
-              required: ["skillScore", "salaryPrediction", "aiSuggestions", "strengths", "weaknesses"],
+              required: ["skillScore", "aiSuggestions", "strengths", "weaknesses"],
             },
           },
         });
@@ -165,7 +153,6 @@ export const handleAssesment = async (req, res) => {
         
         if (attempts >= maxAttempts) throw err;
 
-        // Give a safer wait time (e.g., 14 seconds based on the quota reset advice, or increasing backoff)
         const waitTime = attempts === 1 ? 5000 : 14000; 
         console.log(`Waiting ${waitTime / 1000} seconds before retrying...`);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
@@ -174,18 +161,7 @@ export const handleAssesment = async (req, res) => {
 
     const parsedData = JSON.parse(response.text);
 
-    // 💾 DB Step A: AI Review Save Karein
-    const newReview = await AIReview.create({
-      userId,
-      domainName: domain,
-      skillScore: parsedData.skillScore,
-      salaryPrediction: parsedData.salaryPrediction,
-      aiSuggestions: parsedData.aiSuggestions,
-      strengths: parsedData.strengths,
-      weaknesses: parsedData.weaknesses,
-    });
-
-    // 💾 DB Step B: User progress aur Submission update karein
+    // 💾 DB Step: Fixed deprecated option 'new: true' -> 'returnDocument: "after"'
     const updatedSubmission = await Submission.findOneAndUpdate(
       { userId, domain },
       {
@@ -200,18 +176,17 @@ export const handleAssesment = async (req, res) => {
           },
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
-    // 💡 Save result into Cache to prevent repeated free-tier exhaustion
-    assessmentCache.set(cacheKey, { parsedData, reviewId: newReview._id });
+    // 💡 Save result into Cache
+    assessmentCache.set(cacheKey, { parsedData });
 
     return res.status(200).json({
       score: parsedData.skillScore.overallScore,
       feedback: parsedData.aiSuggestions.join(" "),
       strengths: parsedData.strengths,
       improvements: parsedData.weaknesses,
-      reviewId: newReview._id,
       completedDays: updatedSubmission.completedDays,
       source: "api"
     });
@@ -219,7 +194,6 @@ export const handleAssesment = async (req, res) => {
   } catch (error) {
     console.error("Database or AI Error:", error);
     
-    // Custom friendly message if it's explicitly a rate limit error
     if (error.status === 429) {
       return res.status(429).json({ 
         error: "AI rate limit reached. Please wait roughly 15 seconds before submitting your response again." 
@@ -227,5 +201,55 @@ export const handleAssesment = async (req, res) => {
     }
 
     return res.status(500).json({ error: "Failed to evaluate assessment due to connection error." });
+  }
+};
+
+// 3. 🎯 INTEGRATED: Next Milestone Dashboard Card Fetch Handler
+export const getUserMilestone = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    // User ke saare active & completed domain submissions fetch karein
+    const submissions = await Submission.find({ userId });
+
+    if (!submissions || submissions.length === 0) {
+      return res.status(200).json({
+        hasActiveDomain: false,
+        message: "No active domain found. Please start a domain assessment.",
+      });
+    }
+
+    // Active domain search: Jo incomplete ho (completedDays < 7)
+    const activeSubmission = submissions.find(
+      (sub) => !sub.completedDays || sub.completedDays.length < 7
+    );
+
+    if (!activeSubmission) {
+      return res.status(200).json({
+        hasActiveDomain: false,
+        message: "All domains completed successfully!",
+      });
+    }
+
+    const completedCount = activeSubmission.completedDays ? activeSubmission.completedDays.length : 0;
+    const currentDay = completedCount + 1;
+    const remainingDays = 7 - completedCount;
+    const progressPercentage = Math.round((completedCount / 7) * 100);
+
+    return res.status(200).json({
+      hasActiveDomain: true,
+      domain: activeSubmission.domain,
+      currentLevel: `Level ${currentDay}`,
+      completedDaysCount: completedCount,
+      remainingDays: remainingDays,
+      progressPercentage: progressPercentage,
+    });
+  } catch (error) {
+    console.error("Milestone fetch error:", error);
+    return res.status(500).json({ error: "Failed to fetch dashboard milestone data" });
   }
 };

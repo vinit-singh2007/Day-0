@@ -4,9 +4,8 @@ import verifyToken from "../middlewares/auth.js";
 import { getDashboard } from "../controllers/dash.js";
 import handleFirebaseAuth from "../controllers/firebaseauth.js";
 import { getUserProfile, updateDomainAttempt } from "../controllers/userProfiles.js";
-import { handleAssesment } from "../controllers/assesment.js";
+import { handleAssesment, getUserProgress, getUserMilestone } from "../controllers/assesment.js";
 import { getFullAIReview } from "../controllers/fullreview.js";
-import { getUserProgress } from "../controllers/userProgress.js";
 
 const router = express.Router();
 
@@ -16,8 +15,9 @@ router.post("/signup", handleSignup);
 router.post("/logout", handleSignout);
 router.post("/firebase-auth", handleFirebaseAuth);
 
-// Dashboard Route
+// Dashboard Routes
 router.get("/dash", verifyToken, getDashboard);
+router.get("/milestone", verifyToken, getUserMilestone); // 🎯 Next Milestone Card Data Endpoint
 
 // User Profile & Progress Routes
 router.get("/profile", verifyToken, getUserProfile); 
