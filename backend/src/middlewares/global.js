@@ -7,7 +7,6 @@ export const configureMiddleware = (app) => {
 const allowedOrigins = [
   "http://localhost:5173",
   "https://day-0-delta.vercel.app",
-  "https://day-0-njhqil2aa-axe-vin.vercel.app"
 ];
 
 app.use(cors({
